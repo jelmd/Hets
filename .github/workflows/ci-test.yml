@@ -6,10 +6,10 @@ on:
   # Triggers the workflow on push or pull request cwfor the given branches
   push:
     branches:
-      - master
+      - gha
   pull_request:
     branches:
-      - master
+      - gha
 
 # A workflow run is made up of one or more jobs that can run seq. or in parallel
 jobs:
