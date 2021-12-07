@@ -4,7 +4,6 @@ name: CI-Test
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request cwfor the given branches
   push:
     branches: [ $default-branch ]
   push:
