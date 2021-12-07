@@ -24,10 +24,6 @@ jobs:
 #       with:
 #         node-version: '14'
       # execute the follwoing commands:
-      - run: set
-      - run: env
-      - run: dpkg -l
-      - run: dmidecode
       - run: sudo dmidecode
       - run: cat /proc/cpuinfo
       - run: nproc
