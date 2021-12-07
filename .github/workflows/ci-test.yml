@@ -18,13 +18,12 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       # checkout the hets repo
-      - uses: actions/checkout@v2
-      # pre-defined action to setup nodeJS
-#     - uses: actions/setup-node@v2
-#       with:
-#         node-version: '14'
+      #- uses: actions/checkout@v2
       # execute the follwoing commands:
-      - run: sudo dmidecode
-      - run: cat /proc/cpuinfo
-      - run: nproc
-      - run: cat /proc/meminfo
+      - run: |
+        set
+        echo '###########################################################'
+        grep '^model name' /proc/cpuinfo
+        egrep '^(Mem|Swap)' /proc/meminfo
+        echo '###########################################################'
+
