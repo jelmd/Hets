@@ -27,4 +27,8 @@ jobs:
       - run: set
       - run: env
       - run: dpkg -l
-
+      - run: dmidecode
+      - run: sudo dmidecode
+      - run: cat /proc/cpuinfo
+      - run: nproc
+      - run: cat /proc/meminfo
