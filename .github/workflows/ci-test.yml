@@ -21,9 +21,9 @@ jobs:
       #- uses: actions/checkout@v2
       # execute the follwoing commands:
       - run: |
-        set
-        echo '###########################################################'
-        grep '^model name' /proc/cpuinfo
-        egrep '^(Mem|Swap)' /proc/meminfo
-        echo '###########################################################'
+          set
+          echo '###########################################################'
+          grep '^model name' /proc/cpuinfo
+          egrep '^(Mem|Swap)' /proc/meminfo
+          echo '###########################################################'
 
