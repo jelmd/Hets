@@ -1,0 +1,19 @@
+name: CI-Test
+on: [push]
+jobs:
+	check-bats-version:
+		# TBD: ubuntu-20.04 or macos-11
+		runs-on: ubuntu-18.04
+		steps:
+			# checkout the hets repo
+			- uses: actions/checkout@v2
+			# pre-defined action to setup nodeJS
+			- uses: actions/setup-node@v2
+			  with:
+				node-version: '14'
+			# execute the follwoing commands:
+			- run: set
+			- run: env
+			- run: npm install -g bats
+			- run: bats -v
+
