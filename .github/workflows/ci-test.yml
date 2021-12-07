@@ -1,19 +1,28 @@
+# Build hets and run related tests for CI
 name: CI-Test
-on: [push]
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request cwfor the given branches
+  push:
+    branches: [ $default-branch ]
+  push:
+    branches: [ $default-branch ]
+
+# A workflow run is made up of one or more jobs that can run seq. or in parallel
 jobs:
-  check-bats-version:
+  version:
     # TBD: ubuntu-20.04 or macos-11
     runs-on: ubuntu-18.04
     steps:
       # checkout the hets repo
       - uses: actions/checkout@v2
       # pre-defined action to setup nodeJS
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '14'
+#     - uses: actions/setup-node@v2
+#       with:
+#         node-version: '14'
       # execute the follwoing commands:
       - run: set
       - run: env
-      - run: npm install -g bats
-      - run: bats -v
+      - run: dpkg -l
 
