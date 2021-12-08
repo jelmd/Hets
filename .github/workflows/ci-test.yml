@@ -50,7 +50,7 @@ jobs:
           ip a
           networkctl
           networkctl status
-        run: echo "HETS_MAGIC=${HETS_MAGIC}"
+      - run: echo "HETS_MAGIC=${HETS_MAGIC}"
       # checkout the hets repo
       - uses: actions/checkout@v2
   job_2:
