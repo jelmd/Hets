@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       # execute the follwoing commands:
-      - name: Show environment
+      - name: Environment
         run: |
           eval HETS_MAGIC=${HETS_MAGIC}
           set
@@ -50,8 +50,6 @@ jobs:
           ip a
           networkctl
           networkctl status
-      - name: Vars
-        run: echo "HETS_MAGIC=${HETS_MAGIC}"
   job_2:
     name: Stack
     runs-on: ubuntu-18.04
@@ -66,7 +64,7 @@ jobs:
     steps:
       # checkout the hets repo
       - uses: actions/checkout@v2
-      - name: Stack
+      - name: Environment
         run: |
           networkctl
           networkctl status
@@ -76,9 +74,11 @@ jobs:
           echo '###########################################################'
           # crazy: /var/tmp/ is per default not writable
           sudo chmod 01777 /var/tmp
+          ls -al /var/tmp/
           pwd
           echo GITHUB_WORKSPACE=${GITHUB_WORKSPACE}
           echo STACK_ROOT=${STACK_ROOT}
+      - name: Stack
           cd ${GITHUB_WORKSPACE}
           pwd
           make stack
