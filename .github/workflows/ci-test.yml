@@ -71,13 +71,13 @@ jobs:
           grep '^model name' /proc/cpuinfo
           egrep '^(Mem|Swap)' /proc/meminfo
           set | grep ^GITHUB_
+          echo STACK_ROOT=${STACK_ROOT}
           echo '###########################################################'
           # crazy: /var/tmp/ is per default not writable
           sudo chmod 01777 /var/tmp
-          ls -al /var/tmp/
-          pwd
-          echo GITHUB_WORKSPACE=${GITHUB_WORKSPACE}
-          echo STACK_ROOT=${STACK_ROOT}
+          mkdir -p ${STACK_ROOT}
+          ls -al ${STACK_ROOT}
+          
       - name: Stack
         run: |
           cd ${GITHUB_WORKSPACE}
