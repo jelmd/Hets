@@ -10,13 +10,14 @@ env:
   SMART_CACHE: 1
   NO_DOCS: 1
   #MKDBG: 1
+  # GHA vare settings totally sucks: impossible to use already defined vars =8-(
   STACK_ROOT: /var/tmp/stack
   HETS_BASEDIR: /var/tmp/hets
-  HETS_BUILD_DIR: $HETS_BASEDIR/build
+  HETS_BUILD_DIR: ${HETS_BASEDIR}/build
   PREFIX: /tmp/hets-install
-  PATH: $PREFIX/bin:$STACK_ROOT/bin:$PATH
+  #PATH: ${PREFIX}/bin:${STACK_ROOT}/bin:${PATH}
   HETS_LIB: /var/tmp/Hets-lib
-  HETS_MAGIC: $TRAVIS_BUILD_DIR/magic/hets.magic
+  HETS_MAGIC: ${TRAVIS_BUILD_DIR}/magic/hets.magic
   TH: utils/travis-helper.sh
 
 # Controls when the workflow will run
@@ -39,6 +40,7 @@ jobs:
       # execute the follwoing commands:
       - name: Show environment
         run: |
+          eval HETS_MAGIC=${HETS_MAGIC}
           set
           echo '###########################################################'
           grep '^model name' /proc/cpuinfo
@@ -48,6 +50,7 @@ jobs:
           ip a
           networkctl
           networkctl status
+        run: echo "HETS_MAGIC=${HETS_MAGIC}"
       # checkout the hets repo
       - uses: actions/checkout@v2
   job_2:
