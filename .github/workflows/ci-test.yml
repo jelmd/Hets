@@ -31,7 +31,8 @@ on:
 
 # A workflow run is made up of one or more jobs that can run seq. or in parallel
 jobs:
-  showenv:
+  job_1:
+	name: Show environment
     # TBD: ubuntu-20.04 or macos-11
     runs-on: ubuntu-18.04
     steps:
@@ -49,8 +50,9 @@ jobs:
           ip a
           networkctl
           networkctl status
-  stack:
-      needs: showenv
+  job_2:
+      name: Stack
+      needs: job_1
       # build stack
       # ${{github.workspace}}/build  ${{env.BUILD_TYPE}}
       # CI=true                   RUNNER_WORKSPACE=/home/runner/work/$REPO
@@ -58,5 +60,6 @@ jobs:
       # GITHUB_EVENT_NAME=push    GITHUB_REPOSITORY=jelmd/$REPO
       # GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
       # LANG=C.UTF-8
-      - name: Stack
-        run: make stack
+      steps:
+        - name: Stack
+          run: make stack
