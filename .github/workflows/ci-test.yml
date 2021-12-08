@@ -10,7 +10,7 @@ env:
   SMART_CACHE: 1
   NO_DOCS: 1
   #MKDBG: 1
-  # GHA vare settings totally sucks: impossible to use already defined vars =8-(
+  # GHA var settings totally sucks: impossible to use already defined vars =8-(
   STACK_ROOT: /var/tmp/stack
   HETS_BASEDIR: /var/tmp/hets
   HETS_BUILD_DIR: ${HETS_BASEDIR}/build
@@ -31,13 +31,15 @@ on:
       - gha
 
 # A workflow run is made up of one or more jobs that can run seq. or in parallel
+# but always in a separate, fresh container. So each job needs to fetch the work
+# from previous jobs and checkout the repo again, if needed.
 jobs:
   job_1:
     name: Show environment
     # TBD: ubuntu-20.04 or macos-11
     runs-on: ubuntu-18.04
     steps:
-      # execute the follwoing commands:
+      # execute the following commands:
       - name: Environment
         run: |
           eval HETS_MAGIC=${HETS_MAGIC}
@@ -80,6 +82,7 @@ jobs:
           
       - name: Stack
         run: |
+          sudo apt-get install libpango1.0-dev
           cd ${GITHUB_WORKSPACE}
           pwd
           make stack
