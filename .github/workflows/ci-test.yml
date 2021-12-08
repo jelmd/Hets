@@ -36,8 +36,6 @@ jobs:
     # TBD: ubuntu-20.04 or macos-11
     runs-on: ubuntu-18.04
     steps:
-      # checkout the hets repo
-      - uses: actions/checkout@v2
       # execute the follwoing commands:
       - name: Show environment
         run: |
@@ -50,6 +48,8 @@ jobs:
           ip a
           networkctl
           networkctl status
+      # checkout the hets repo
+      - uses: actions/checkout@v2
   job_2:
     name: Stack
     runs-on: ubuntu-18.04
