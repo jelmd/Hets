@@ -82,7 +82,7 @@ jobs:
           
       - name: Stack
         run: |
-          sudo apt-get install libpango1.0-dev
+          sudo apt-get install libpango1.0-dev libgtk2.0-dev
           cd ${GITHUB_WORKSPACE}
           pwd
           make stack
