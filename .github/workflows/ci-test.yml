@@ -69,6 +69,8 @@ jobs:
       - name: Stack
         run: |
           pwd
+          echo GITHUB_WORKSPACE=${GITHUB_WORKSPACE}
+          echo STACK_ROOT=${STACK_ROOT}
           cd ${GITHUB_WORKSPACE}
           pwd
           make stack
