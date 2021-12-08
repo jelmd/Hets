@@ -68,7 +68,9 @@ jobs:
     steps:
       - name: Stack
         run: |
+          pwd
           cd ${GITHUB_WORKSPACE}
+          pwd
           make stack
           ls -alR
           ls -alR ${STACK_ROOT} 
