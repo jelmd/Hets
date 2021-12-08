@@ -12,11 +12,11 @@ env:
   #MKDBG: 1
   STACK_ROOT: /var/tmp/stack
   HETS_BASEDIR: /var/tmp/hets
-  HETS_BUILD_DIR: ${HETS_BASEDIR}/build
+  HETS_BUILD_DIR: ${{env.HETS_BASEDIR}}/build
   PREFIX: /tmp/hets-install
-  PATH: ${PREFIX}/bin:${STACK_ROOT}/bin:${PATH}
+  PATH: ${{env.PREFIX}}/bin:${STACK_ROOT}/bin:${{env.PATH}}
   HETS_LIB: /var/tmp/Hets-lib
-  HETS_MAGIC: ${TRAVIS_BUILD_DIR}/magic/hets.magic
+  HETS_MAGIC: ${{env.TRAVIS_BUILD_DIR}}/magic/hets.magic
   TH: utils/travis-helper.sh
 
 # Controls when the workflow will run
