@@ -67,4 +67,8 @@ jobs:
       # LANG=C.UTF-8
     steps:
       - name: Stack
-        run: make stack
+        run: |
+          cd ${GITHUB_WORKSPACE}
+          make stack
+          ls -alR
+          ls -alR ${STACK_ROOT} 
