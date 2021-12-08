@@ -35,56 +35,28 @@ on:
 # from previous jobs and checkout the repo again, if needed.
 jobs:
   job_1:
-    name: Show environment
-    # TBD: ubuntu-20.04 or macos-11
-    runs-on: ubuntu-18.04
-    steps:
-      # execute the following commands:
-      - name: Environment
-        run: |
-          eval HETS_MAGIC=${HETS_MAGIC}
-          set
-          echo '###########################################################'
-          grep '^model name' /proc/cpuinfo
-          egrep '^(Mem|Swap)' /proc/meminfo
-          echo '###########################################################'
-          uname -a
-          ip a
-          networkctl
-          networkctl status
-  job_2:
     name: Stack
     runs-on: ubuntu-18.04
-    needs: job_1
-      # build stack
-      # ${{github.workspace}}/build  ${{env.BUILD_TYPE}}
-      # CI=true                   RUNNER_WORKSPACE=/home/runner/work/$REPO
-      # GITHUB_WORKFLOW=CI-Test   GITHUB_WORKSPACE=${RUNNER_WORKSPACE}/$REPO
-      # GITHUB_EVENT_NAME=push    GITHUB_REPOSITORY=jelmd/$REPO
-      # GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
-      # LANG=C.UTF-8
     steps:
+      - uses: ${{ env.GITHUB_REPOSITORY }}/.github/workflows/show-env.yml
+      - uses: actions/download-artifact@v2
+        with:
+          name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
+          path: ${{ env.STACK_ROOT }}/${{ env.GITHUB_REPOSITORY }}
+
       # checkout the hets repo
       - uses: actions/checkout@v2
-      - name: Environment
-        run: |
-          networkctl
-          networkctl status
-          grep '^model name' /proc/cpuinfo
-          egrep '^(Mem|Swap)' /proc/meminfo
-          set | grep ^GITHUB_
-          echo STACK_ROOT=${STACK_ROOT}
-          echo '###########################################################'
-          # crazy: /var/tmp/ is per default not writable
-          sudo chmod 01777 /var/tmp
-          mkdir -p ${STACK_ROOT}
-          ls -al ${STACK_ROOT}
-          
+
       - name: Stack
         run: |
           sudo apt-get install libpango1.0-dev libgtk2.0-dev
           cd ${GITHUB_WORKSPACE}
-          pwd
-          make stack
-          ls -alR
-          ls -alR ${STACK_ROOT} 
+          make stack && rm -rf ${STACK_ROOT}/programs/x86_64-linux/*/share/doc && tar cplzf ${STACK_ROOT}.tgz ${STACK_ROOT}
+          ls -al ${STACK_ROOT}* 
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
+          path: ${STACK_ROOT}.tgz
+          retention-days: 30
+          if-no-files-found: error
+

@@ -1,0 +1,31 @@
+name: Show Env workflow
+
+on:
+  workflow_call:
+
+jobs:
+  job_1:
+    name: Show environment
+    # TBD: ubuntu-20.04 or macos-11
+    runs-on: ubuntu-18.04
+    steps:
+      # execute the following commands:
+      - name: Environment
+        run: |
+          set | grep ^GITHUB_
+          echo STACK_ROOT=${STACK_ROOT}
+          echo '###########################################################'
+          grep '^model name' /proc/cpuinfo
+          egrep '^(Mem|Swap)' /proc/meminfo
+          echo '###########################################################'
+          uname -a
+          echo '###########################################################'
+          #ip a
+          networkctl
+          networkctl status
+      # ${{github.workspace}}/build  ${{env.BUILD_TYPE}}
+      # CI=true                   RUNNER_WORKSPACE=/home/runner/work/$REPO
+      # GITHUB_WORKFLOW=CI-Test   GITHUB_WORKSPACE=${RUNNER_WORKSPACE}/$REPO
+      # GITHUB_EVENT_NAME=push    GITHUB_REPOSITORY=jelmd/$REPO
+      # GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
+      # LANG=C.UTF-8
