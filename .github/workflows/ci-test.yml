@@ -68,6 +68,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Stack
         run: |
+          networkctl
+          networkctl status
+          grep '^model name' /proc/cpuinfo
+          egrep '^(Mem|Swap)' /proc/meminfo
+          set | grep ^GITHUB_
+          echo '###########################################################'
+          # crazy: /var/tmp/ is per default not writable
+          sudo chmod 01777 /var/tmp
           pwd
           echo GITHUB_WORKSPACE=${GITHUB_WORKSPACE}
           echo STACK_ROOT=${STACK_ROOT}
