@@ -43,6 +43,7 @@ jobs:
     steps:
       - name: Update packages
         run: |
+          printf 'man-db man-db/auto-update boolean false\n' | sudo debconf-set-selections
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install libpango1.0-dev libgtk2.0-dev
 
