@@ -51,6 +51,7 @@ function showEnv {
 		# GITHUB_WORKFLOW=CI-Test   GITHUB_WORKSPACE=${RUNNER_WORKSPACE}/$REPO
 		# GITHUB_EVENT_NAME=push    GITHUB_REPOSITORY=jelmd/$REPO
 		# GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
+		# GITHUB_PATH und GITHUB_ENV sind bei jedem run anders (leere files)
 		set | grep '^GITHUB_'
 	fi
 	print "STACK_ROOT=${STACK_ROOT}"

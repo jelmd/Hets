@@ -51,8 +51,8 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v2
         with:
-          name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
-          path: ${{ env.STACK_ROOT }}/${{ env.GITHUB_REPOSITORY }}
+          name: ${{ github.repository }}-stack.tgz
+          path: ${{ env.STACK_ROOT }}/${{ github.repository }}
 
       - name: Update packages
         run: |
