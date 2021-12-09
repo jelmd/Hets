@@ -58,8 +58,8 @@ jobs:
 
       - name: Stack
         run: |
-          ${GAH} showEnv
-          ${GAH} makeStake
+          ${{ env.GAH }} showEnv
+          ${{ env.GAH }} makeStake
 
       - name: Upload stack
         uses: actions/upload-artifact@v2
