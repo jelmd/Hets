@@ -58,14 +58,14 @@ jobs:
 
       - name: Stack
         run: |
-          ${{ env.GAH }} showEnv
-          ${{ env.GAH }} makeStake
+          ${{ env.GAH }} -c showEnv
+          ${{ env.GAH }} -c makeStackx
 
       - name: Upload stack
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
-          path: ${STACK_ROOT}.tgz
+          path: ${{ STACK_ROOT }}.tgz
           if-no-files-found: error
           # rebuild once a month
           retention-days: 30

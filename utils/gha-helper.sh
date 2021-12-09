@@ -29,10 +29,14 @@ function showUsage {
 Man.addFunc doMain '' '[+NAME?doMain - the main application loop alias script entry point.]'
 function doMain {
 	typeset X ARGS=( "$@" )
+	integer C=0
+
 	for X in ${CMD} ; do
 		[[ -z $X || $X == 'doMain' ]] && continue
 		$X "${ARGS[@]}" || return $?
+		(( C++ ))
 	done
+	(( C )) || showUsage
 }
 
 Man.addFunc showEnv '' '[+NAME?showEnv - show the current environment.]
