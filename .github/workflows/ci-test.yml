@@ -65,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
-          path: ${{ STACK_ROOT }}.tgz
+          path: ${{ env.STACK_ROOT }}.tgz
           if-no-files-found: error
           # rebuild once a month
           retention-days: 30
