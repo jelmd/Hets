@@ -51,9 +51,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Update packages
+        run: |
+          sudo apt-get install ksh93 || sudo apt-get install ksh
+          sudo apt-get install libpango1.0-dev libgtk2.0-dev
+
       - name: Stack
         run: |
-          sudo apt-get install ksh93 libpango1.0-dev libgtk2.0-dev
           ${GAH} showEnv
           ${GAH} makeStake
 
