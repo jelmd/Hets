@@ -45,6 +45,7 @@ jobs:
         with:
           name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
           path: ${{ env.STACK_ROOT }}/${{ env.GITHUB_REPOSITORY }}
+          if-no-files-found: ignore
 
       # checkout the hets repo
       - uses: actions/checkout@v2
