@@ -51,7 +51,7 @@ function showEnv {
 		# GITHUB_WORKFLOW=CI-Test   GITHUB_WORKSPACE=${RUNNER_WORKSPACE}/$REPO
 		# GITHUB_EVENT_NAME=push    GITHUB_REPOSITORY=jelmd/$REPO
 		# GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
-		# GITHUB_PATH und GITHUB_ENV sind bei jedem run anders (leere files)
+		# GITHUB_{PATH,ENV,SHA,RUN_ID} sind bei jedem run anders (leere files)
 		set | grep '^GITHUB_'
 	fi
 	print "STACK_ROOT=${STACK_ROOT}"
@@ -77,7 +77,7 @@ Man.addFunc makeStack '' '[+NAME?makeStack - prepare and make stack as needed.]
 '
 function makeStack {
 	integer RES=0
-
+	# https://pipelines.actions.githubusercontent.com/gVg8E9gt7fHHJLaQdaL36xF2sI5u6owZ8mCo9cGUTJzymUUzsF/_apis/pipelines/workflows/${GITHUB_RUN_ID}/artifacts?api-version=6.0-preview
 	if [[ -f ${STACK_ROOT}.tgz ]]; then
 		cd ${STACK_ROOT}/..
 		tar xzf ${STACK_ROOT}.tgz
