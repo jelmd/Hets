@@ -94,6 +94,10 @@ function makeStack {
 
 function makeStackx {
 	cp /bin/true ${STACK_ROOT}.tgz
+	Log.warn "GITHUB_PATH ($GITHUB_PATH)"
+	cat ${GITHUB_PATH}
+	Log.warn "GITHUB_ENV ($GITHUB_ENV)"
+	cat ${GITHUB_ENV}
 }
 
 Man.addFunc MAIN '' '[+NAME?'"${PROG}"' - helper script for Hets Github Actions.]
