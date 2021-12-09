@@ -41,21 +41,24 @@ jobs:
     name: Stack
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
-          path: ${{ env.STACK_ROOT }}/${{ env.GITHUB_REPOSITORY }}
-          if-no-files-found: warn
+      - name: Download stack
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+          with:
+            name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
+            path: ${{ env.STACK_ROOT }}/${{ env.GITHUB_REPOSITORY }}
 
-      # checkout the hets repo
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: Stack
         run: |
           sudo apt-get install ksh93 libpango1.0-dev libgtk2.0-dev
           ${GAH} showEnv
           ${GAH} makeStake
-      - uses: actions/upload-artifact@v2
+
+      - name: Upload stack
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
           path: ${STACK_ROOT}.tgz
