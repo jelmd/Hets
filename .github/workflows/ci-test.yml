@@ -41,6 +41,10 @@ jobs:
     name: Stack
     runs-on: ubuntu-18.04
     steps:
+      - name: Env
+        run: |
+          ${{ env.GAH }} -c showEnv full
+
       - name: Checkout
         uses: actions/checkout@v2
 
