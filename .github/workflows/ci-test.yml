@@ -67,7 +67,7 @@ jobs:
       - name: Upload stack
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.GITHUB_REPOSITORY }}-stack.tgz
+          name: ${{ github.repository }}-stack.tgz
           path: ${{ env.STACK_ROOT }}.tgz
           if-no-files-found: error
           # rebuild once a month
