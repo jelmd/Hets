@@ -92,6 +92,10 @@ function makeStack {
 	return ${RES}
 }
 
+function makeStackx {
+	cp /bin/true ${STACK_ROOT}.tgz
+}
+
 Man.addFunc MAIN '' '[+NAME?'"${PROG}"' - helper script for Hets Github Actions.]
 [+DESCRIPTION?This is a little helper script to circumvent problems, code repetitions and other short comings of Github Action [design]]. Most functions are Hets repo related and should not be used on other repos unless properly adjusted.]
 [+?All operands to this script get passed to the related functions as is. So take care if you call several functions at once.]
