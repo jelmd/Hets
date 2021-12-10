@@ -112,6 +112,7 @@ jobs:
     steps:
        # Add missing packages, but leave man as is (saves ~ 15s).
       - name: Update packages
+        run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ${{ env.MISSING_PKGS }}
@@ -160,6 +161,7 @@ jobs:
     steps:
        # Add missing packages, but leave man as is (saves ~ 15s).
       - name: Update packages
+        run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ${{ env.MISSING_PKGS }}
