@@ -61,10 +61,12 @@ jobs:
       # which saves ~15..20 min.
       - name: Fetch stack cache
         id: stack_cache
+        env:
+          STACK_HASH: ${{ hashFiles('/stack.yml') }}
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
-          key: stack-${{ runner.os }}-${{ hashFiles('stack.yml') }}
+          key: stack-${{ runner.os }}-${{ env.STACK_HASH }}
 
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
