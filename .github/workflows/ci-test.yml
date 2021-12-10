@@ -45,7 +45,10 @@ jobs:
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: printf "$GITHUB_CONTEXT\n"
+        run: |
+          printf "$GITHUB_CONTEXT\n"
+          df -h
+          mount
 
       # Actually we only need stack.yml to calculate the hash. But the checkout
       # takes ~ 5s, only => not worth to optimize/add complexity.
