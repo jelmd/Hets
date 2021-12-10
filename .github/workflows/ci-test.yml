@@ -17,7 +17,6 @@ env:
   STACK_ROOT: /var/tmp/hets/stack
   GAH: utils/gha-helper.sh
   MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
-  UBUNTU_TARGET: '18.04'
   # GHA var settings totally sucks: impossible to use already defined vars =8-(
   #HETS_BASEDIR: /var/tmp/hets
   #HETS_BUILD_DIR: ${HETS_BASEDIR}/build
@@ -45,7 +44,7 @@ on:
 jobs:
   job_1:
     name: Stack
-    runs-on: ubuntu-${{ env.UBUNTU_TARGET }}
+    runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong. E.g. stack
     # sometimes goes in an endless loop. We prefer to kill instead of wasting
     # valueable credits (2000 min/month). 
