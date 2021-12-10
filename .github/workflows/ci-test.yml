@@ -10,9 +10,14 @@ env:
   SMART_CACHE: 1
   NO_DOCS: 1
   #MKDBG: 1
-  # /var/tmp is not writable er default - ohjehh, Microsoft ...
-  STACK_ROOT: /dev/shm/hets/stack
+  # Dir cannot be directly in /tmp or /var/tmp because Microsoft does not
+  # understand dir mode 01777 and errors out with dumb messages. /dev/shm/
+  # does not work for stack - not enough space. /tmp as well as /var/tmp are on
+  # /dev/sd*.
+  STACK_ROOT: /var/tmp/hets/stack
   GAH: utils/gha-helper.sh
+  MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
+  UBUNTU_TARGET: '18.04'
   # GHA var settings totally sucks: impossible to use already defined vars =8-(
   #HETS_BASEDIR: /var/tmp/hets
   #HETS_BUILD_DIR: ${HETS_BASEDIR}/build
@@ -40,26 +45,29 @@ on:
 jobs:
   job_1:
     name: Stack
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-${{ env.UBUNTU_TARGET }}
+    # If the job takes longer than 30 min, something is going wrong. E.g. stack
+    # sometimes goes in an endless loop. We prefer to kill instead of wasting
+    # valueable credits (2000 min/month). 
+    timeout-minutes: 30
     steps:
-      # Make troubleshooting easier. < 0.2s
+      # Info about the running environment makes troubleshooting easier. < 1s
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
         run: |
+          mkdir -p ${{ env.STACK_ROOT }}
           printf "$GITHUB_CONTEXT\n"
           df -h
           mount
-          # Microsoft trash does not understand, what dir mode 01777 means ...
-          mkdir -p ${{ env.STACK_ROOT }}
 
       # Actually we only need stack.yml to calculate the hash. But the checkout
       # takes ~ 5s, only => not worth to optimize/add complexity.
       - name: Checkout
         uses: actions/checkout@v2
 
-      # If stack.yml has not been changed, we can try to use a cached copy,
-      # which saves ~15..20 min.
+      # If stack.yaml has not been changed, we can try to use a cached copy,
+      # which saves ~15..20 min. On hit takes ~ 25s
       - name: Fetch stack cache
         id: stack_cache
         uses: actions/cache@v2
@@ -67,17 +75,20 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
+      # Add missing packages. Since it is not a minimal server image, almost
+      # everything is already installed. But this makes update time longer: 30s
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo apt-get install ksh93 || sudo apt-get install ksh
-          sudo apt-get install libpango1.0-dev libgtk2.0-dev
+          sudo apt-get install ${{ env.MISSING_PKGS }}
           ${{ env.GAH }} -c showEnv
 
       - name: Build stack
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
+          cp -L /usr/bin/ksh93 ${{ env.STACK_ROOT }}/
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           ls -al ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/
           ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
