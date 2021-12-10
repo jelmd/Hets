@@ -83,7 +83,7 @@ jobs:
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
       # Add missing packages. Since it is not a minimal server image, almost
-      # everything is already installed. But this makes update time longer: 27s
+      # everything is already installed. But this makes update time longer: 13s
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
-       # Add missing packages
+       # Add missing packages, but leave man as is (saves ~ 15s).
       - name: Update packages
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
@@ -140,12 +140,12 @@ jobs:
           # Update stack info
           make stack
           make hets.bin
-          # 250+ MB git info is far too much bloat: blow it away
-          rm -rf .git
-          /bin/tar --posix --use-compress-program zstd -cplf ../desktop.tzst .
+          # 250+ MB for .git is by far too much ...
+          /bin/tar -H posix -I zstd --exclude=.git -cplf ../hets.tzst .
           ./hets.bin -V
 
-      # Actually we need it for tests, only. So 1h would be enough.
+      # Actually we need it for tests, only. So 1h retention would be enough.
+      # ~ 206 MiB which saves us ~ 25 min.
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
-       # Add missing packages
+       # Add missing packages, but leave man as is (saves ~ 15s).
       - name: Update packages
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
@@ -188,12 +188,12 @@ jobs:
           # Update stack info
           make stack
           make hets_server.bin || true
-          # 250+ MB git info is far too much bloat: blow it away
-          rm -rf .git
-          /bin/tar --posix --use-compress-program zstd -cplf ../hets.tzst .
+          # 258+ MiB for .git is by far too much ...
+          /bin/tar -H posix -I zstd --exclude=.git -cplf ../hets.tzst .
           ./hets_server.bin -V
 
-      # Actually we need it for tests, only. So 1h would be enough.
+      # Actually we need it for tests, only. So 1h retention would be enough.
+      # ~ 206 MiB which saves us ~ 25 min.
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
