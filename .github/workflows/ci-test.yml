@@ -72,6 +72,7 @@ jobs:
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install libpango1.0-dev libgtk2.0-dev
           ${{ env.GAH }} -c showEnv
+          ls -al /tmp  /var/tmp /dev/shm
 
       - name: Build stack
         if: steps.stack_cache.outputs.cache-hit != 'true'
