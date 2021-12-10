@@ -83,7 +83,7 @@ jobs:
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install ${{ env.MISSING_PKGS }}
           ${{ env.GAH }} -c showEnv
-          cp -L `whence ksh93` ${{ env.STACK_ROOT }}/
+          cp -L `bash -c whence ksh93` ${{ env.STACK_ROOT }}/
 
       - name: Build stack
         if: steps.stack_cache.outputs.cache-hit != 'true'
