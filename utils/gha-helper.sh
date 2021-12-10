@@ -73,6 +73,9 @@ function showEnv {
 
 function getStackHash {
 	# https://github.com/spechub/Hets/blob/8206101f6447a6c84c4f7f9a4d97cbdff7a27fa0/stack.yml
+	# https://raw.githubusercontent.com/jelmd/Hets/f3e5084b4efec52bb2cb2c7fd35db47e208d3389/.github/workflows/ci-test.yml
+	# https://raw.githubusercontent.com/TpmKranz/Hets/8206101f6447a6c84c4f7f9a4d97cbdff7a27fa0/stack.yaml
+	:
 }
 
 Man.addFunc makeStack '' '[+NAME?makeStack - prepare and make stack as needed.]

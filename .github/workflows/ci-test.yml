@@ -62,7 +62,7 @@ jobs:
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yml') }}
 
       - name: Update packages
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo apt-get install ksh93 || sudo apt-get install ksh
@@ -70,7 +70,7 @@ jobs:
           ${{ env.GAH }} -c showEnv
 
       - name: Build stack
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
