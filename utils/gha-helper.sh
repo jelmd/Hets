@@ -57,7 +57,7 @@ function showEnv {
 		# GITHUB_EVENT_NAME=push    GITHUB_REPOSITORY=jelmd/$REPO
 		# GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
 		# GITHUB_{PATH,ENV,SHA,RUN_ID} sind bei jedem run anders (leere files)
-		set | grep '^GITHUB_'
+		set | egrep '^(GITHUB|RUNNER)_'
 		print "STACK_ROOT=${STACK_ROOT}"
 	fi
 	Log.printMarker

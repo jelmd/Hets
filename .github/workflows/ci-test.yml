@@ -103,12 +103,19 @@ jobs:
           ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
           stack exec -- ghc -V
 
-  # Unfortunately there are no parameter driven jobs or job templates
+  # Unfortunately there are no parameter driven jobs or job templates. Should
+  # we use GHA helper script instead?
   job_2a:
     name: Hets Desktop
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
+       # Add missing packages
+      - name: Update packages
+          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install ${{ env.MISSING_PKGS }}
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -126,7 +133,7 @@ jobs:
           name: hets-desktop
           path: ../hets.tzst
 
-      - name: Build
+      - name: Build hets
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GAH }} -c showEnv
@@ -135,7 +142,7 @@ jobs:
           make hets.bin
           # 250+ MB git info is far too much bloat: blow it away
           rm -rf .git
-          /bin/tar --posix --use-compress-program zstd -T0 -cf ../desktop.tzst .
+          /bin/tar --posix --use-compress-program zstd -cplf ../desktop.tzst .
           ./hets.bin -V
 
       # Actually we need it for tests, only. So 1h would be enough.
@@ -151,6 +158,12 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
+       # Add missing packages
+      - name: Update packages
+          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install ${{ env.MISSING_PKGS }}
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -168,7 +181,7 @@ jobs:
           name: hets-server
           path: ../hets.tzst
 
-      - name: Build
+      - name: Build hets
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GAH }} -c showEnv
@@ -177,7 +190,7 @@ jobs:
           make hets_server.bin || true
           # 250+ MB git info is far too much bloat: blow it away
           rm -rf .git
-          /bin/tar --posix --use-compress-program zstd -T0 -cf ../hets.tzst .
+          /bin/tar --posix --use-compress-program zstd -cplf ../hets.tzst .
           ./hets_server.bin -V
 
       # Actually we need it for tests, only. So 1h would be enough.
@@ -185,5 +198,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: hets-server
-          path: ${{ github.workspace }}
+          path: ../hets.tzst
           retention-days: 1
