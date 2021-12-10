@@ -1,5 +1,9 @@
 #!/bin/ksh93
 
+[[ -z "${PUSH_URL}" ]] && PUSH_URL='http://theo.cs.ovgu.de/cgi-bin/push'
+[[ -z "${PULL_URL}" ]] && PULL_URL='http://theo.cs.ovgu.de/travis'
+[[ -z "${HETS_BASEDIR}" ]] && HETS_BASEDIR='/var/tmp/hets'
+
 typeset -r VERSION='1.0'
 
 LIC='[-?'"${VERSION}"' ]
@@ -67,6 +71,10 @@ function showEnv {
 	Log.printMarker
 }
 
+function getStackHash {
+	# https://github.com/spechub/Hets/blob/8206101f6447a6c84c4f7f9a4d97cbdff7a27fa0/stack.yml
+}
+
 Man.addFunc makeStack '' '[+NAME?makeStack - prepare and make stack as needed.]
 [+DESCRIPTION?If there is a file \b${STACK_ROOT}.tgz\b it gets extracted as is in \b${STACK_ROOT}/../\b and if \b${STACK_ROOT}/ok\b exists, it is assumed, that the extracted archive contains the pre-build working stack. In this case the archive gets removed and exit code 0 returned. Otherwise it calls \bmake stack\b in \b${GITHUB_WORKSPACE}/\b and on success it finally archives the \b${STACK_ROOT}/\b without any docs to \b${STACK_ROOT}.tgz\b for an artifact upload.]
 [+?To force a rebuild of the stack, simply remove the related artifact from the artifact store before calling this function.]
@@ -77,11 +85,9 @@ Man.addFunc makeStack '' '[+NAME?makeStack - prepare and make stack as needed.]
 '
 function makeStack {
 	integer RES=0
-	# https://pipelines.actions.githubusercontent.com/gVg8E9gt7fHHJLaQdaL36xF2sI5u6owZ8mCo9cGUTJzymUUzsF/_apis/pipelines/workflows/${GITHUB_RUN_ID}/artifacts?api-version=6.0-preview
+
 	if [[ -f ${STACK_ROOT}.tgz ]]; then
-		cd ${STACK_ROOT}/..
-		tar xzf ${STACK_ROOT}.tgz
-		cd -~
+		cd ${STACK_ROOT}/.. && tar xzf ${STACK_ROOT}.tgz
 		[[ -e ${STACK_ROOT}/ok ]] && return 0
 	fi
 	cd ${GITHUB_WORKSPACE}
@@ -89,7 +95,8 @@ function makeStack {
 	rm -rf ${STACK_ROOT}/programs/x86_64-linux/*/share/doc
 	cd ${STACK_ROOT}/..
 	rm -f ${STACK_ROOT}.tgz
-	tar cplzf ${STACK_ROOT}.tgz ${STACK_ROOT##*/}
+	tar cplzf ${STACK_ROOT}.tgz --exclude=.git  ${STACK_ROOT##*/}
+	ls -al ${STACK_ROOT}.tgz
 	return ${RES}
 }
 

@@ -41,58 +41,36 @@ jobs:
     name: Stack
     runs-on: ubuntu-18.04
     steps:
+      # Make troubleshooting easier. < 0.2s
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: echo "$GITHUB_CONTEXT"
-      - name: Dump job context
-        env:
-          JOB_CONTEXT: ${{ toJSON(job) }}
-        run: echo "$JOB_CONTEXT"
-      - name: Dump steps context
-        env:
-          STEPS_CONTEXT: ${{ toJSON(steps) }}
-        run: echo "$STEPS_CONTEXT"
-      - name: Dump runner context
-        env:
-          RUNNER_CONTEXT: ${{ toJSON(runner) }}
-        run: echo "$RUNNER_CONTEXT"
-      - name: Dump strategy context
-        env:
-          STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
-        run: echo "$STRATEGY_CONTEXT"
-      - name: Dump matrix context
-        env:
-          MATRIX_CONTEXT: ${{ toJSON(matrix) }}
-        run: echo "$MATRIX_CONTEXT"
+        run: printf "$GITHUB_CONTEXT\n"
 
-      - name: Update packages
-        run: |
-          printf 'man-db man-db/auto-update boolean false\n' | sudo debconf-set-selections
-          sudo apt-get install ksh93 || sudo apt-get install ksh
-          sudo apt-get install libpango1.0-dev libgtk2.0-dev
-
+      # Actually we only need stack.yml to calculate the hash. But the checkout
+      # takes ~ 5s, only => not worth to optimize/add complexity.
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Download stack
-        continue-on-error: true
-        uses: actions/download-artifact@v2
+      # If stack.yml has not been changed, we can try to use a cached copy,
+      # which saves ~15..20 min.
+      - name: Fetch stack cache
+        id: stack_cache
+        uses: actions/cache@v2
         with:
-          name: ${{ github.repository }}-stack.tgz
-          path: ${{ env.STACK_ROOT }}/${{ github.repository }}
+          path: ${{ env.STACK_ROOT }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yml') }}
+
+      - name: Update packages
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          sudo apt-get install ksh93 || sudo apt-get install ksh
+          sudo apt-get install libpango1.0-dev libgtk2.0-dev
+          ${{ env.GAH }} -c showEnv
 
       - name: Build stack
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          ${{ env.GAH }} -c showEnv
-          ${{ env.GAH }} -c makeStackx
-
-      - name: Upload stack
-        uses: actions/upload-artifact@v2
-        with:
-          name: foo-stack.tgz
-          path: ${{ env.STACK_ROOT }}.tgz
-          if-no-files-found: error
-          # rebuild once a month
-          retention-days: 30
-
+          make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
+          ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
