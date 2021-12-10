@@ -11,7 +11,7 @@ env:
   NO_DOCS: 1
   #MKDBG: 1
   # /var/tmp is not writable er default - ohjehh, Microsoft ...
-  STACK_ROOT: /tmp/stack
+  STACK_ROOT: /var/tmp/hets/stack
   GAH: utils/gha-helper.sh
   # GHA var settings totally sucks: impossible to use already defined vars =8-(
   #HETS_BASEDIR: /var/tmp/hets
@@ -50,6 +50,7 @@ jobs:
           printf "$GITHUB_CONTEXT\n"
           df -h
           mount
+          mkdir /var/tmp/hets
 
       # Actually we only need stack.yml to calculate the hash. But the checkout
       # takes ~ 5s, only => not worth to optimize/add complexity.
@@ -72,7 +73,6 @@ jobs:
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install libpango1.0-dev libgtk2.0-dev
           ${{ env.GAH }} -c showEnv
-          ls -al /tmp  /var/tmp /dev/shm
 
       - name: Build stack
         if: steps.stack_cache.outputs.cache-hit != 'true'
