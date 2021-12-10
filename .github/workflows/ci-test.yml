@@ -11,7 +11,7 @@ env:
   NO_DOCS: 1
   #MKDBG: 1
   # /var/tmp is not writable er default - ohjehh, Microsoft ...
-  STACK_ROOT: /var/tmp/hets/stack
+  STACK_ROOT: /dev/shm/hets/stack
   GAH: utils/gha-helper.sh
   # GHA var settings totally sucks: impossible to use already defined vars =8-(
   #HETS_BASEDIR: /var/tmp/hets
@@ -50,7 +50,8 @@ jobs:
           printf "$GITHUB_CONTEXT\n"
           df -h
           mount
-          mkdir /var/tmp/hets
+          # Microsoft trash does not understand, what dir mode 01777 means ...
+          mkdir -p ${{ env.STACK_ROOT }}
 
       # Actually we only need stack.yml to calculate the hash. But the checkout
       # takes ~ 5s, only => not worth to optimize/add complexity.
@@ -61,12 +62,10 @@ jobs:
       # which saves ~15..20 min.
       - name: Fetch stack cache
         id: stack_cache
-        env:
-          STACK_HASH: ${{ hashFiles('/stack.yml') }}
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
-          key: stack-${{ runner.os }}-${{ env.STACK_HASH }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
@@ -80,4 +79,6 @@ jobs:
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
+          ls -al ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/
           ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
+          ls -al ${{ github.workspace }}
