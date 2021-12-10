@@ -75,7 +75,7 @@ jobs:
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
       # Add missing packages. Since it is not a minimal server image, almost
-      # everything is already installed. But this makes update time longer: 30s
+      # everything is already installed. But this makes update time longer: 27s
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
@@ -84,11 +84,12 @@ jobs:
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install ${{ env.MISSING_PKGS }}
           ${{ env.GAH }} -c showEnv
-          cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
 
       - name: Build stack
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
+          echo "::set-output name=steps.stack_cache.outputs.cache-hit::false"
+          cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
           ls -al ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/
