@@ -47,6 +47,7 @@ Man.addFunc showEnv '' '[+NAME?showEnv - show the current environment.]
 [+DESCRIPTION?Shows the main parameters of the working environment. If an argument gets passed, all environment variables currently set will be shown, otherwise all beginning with \bGITHUB_\b and some specials, only.]
 \n\n[\aarg\a]'
 function showEnv {
+	Log.printMarker
 	if [[ -n $1 ]]; then
 		set
 	else
@@ -57,8 +58,8 @@ function showEnv {
 		# GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
 		# GITHUB_{PATH,ENV,SHA,RUN_ID} sind bei jedem run anders (leere files)
 		set | grep '^GITHUB_'
+		print "STACK_ROOT=${STACK_ROOT}"
 	fi
-	print "STACK_ROOT=${STACK_ROOT}"
 	Log.printMarker
 	typeset T=${ nproc; } M=${ grep '^model name' /proc/cpuinfo | head -1; }
 	print "${M//	:/: ${T}x }"
@@ -72,9 +73,6 @@ function showEnv {
 }
 
 function getStackHash {
-	# https://github.com/spechub/Hets/blob/8206101f6447a6c84c4f7f9a4d97cbdff7a27fa0/stack.yml
-	# https://raw.githubusercontent.com/jelmd/Hets/f3e5084b4efec52bb2cb2c7fd35db47e208d3389/.github/workflows/ci-test.yml
-	# https://raw.githubusercontent.com/TpmKranz/Hets/8206101f6447a6c84c4f7f9a4d97cbdff7a27fa0/stack.yaml
 	:
 }
 

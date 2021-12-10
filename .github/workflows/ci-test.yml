@@ -1,5 +1,5 @@
 # Build hets and run related tests for CI
-name: CI-Test
+name: CI-Tests
 
 env:
   SKIP_STACK: 0
@@ -25,15 +25,21 @@ env:
   #HETS_LIB: /var/tmp/Hets-lib
   #HETS_MAGIC: ${TRAVIS_BUILD_DIR}/magic/hets.magic
 
-# Controls when the workflow will run
+# When to trigger this workflow
 on:
-  # Triggers the workflow on push or pull request cwfor the given branches
+  # on push or pull requests for the given branches
   push:
     branches:
       - gha
   pull_request:
     branches:
       - gha
+
+# Run this workflow for the latest commit in a branch, only. I.e. if there is
+# any instance for an older commit still running, stop it and kill its jobs.
+concurrency:
+  group: pr-build-and-test-${{ github.ref_head }}
+  cancel-in-progress: true
 
 # A workflow run is made up of one or more jobs that can run seq. or in parallel
 # but always in a separate, fresh container. So each job needs to fetch the work
@@ -66,7 +72,9 @@ jobs:
         uses: actions/checkout@v2
 
       # If stack.yaml has not been changed, we can try to use a cached copy,
-      # which saves ~15..20 min. On hit (~ 603 MiB) it takes ~ 25s
+      # which saves ~15..20 min. On hit (~ 495 MiB) it takes ~ 25s
+      # NOTE: There is no way to remove or update a cached file. So one needs
+      # to modify stack.yaml to create a new cache entry =8-( .
       - name: Fetch stack cache
         id: stack_cache
         uses: actions/cache@v2
@@ -83,18 +91,99 @@ jobs:
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install ${{ env.MISSING_PKGS }}
-          ${{ env.GAH }} -c showEnv
 
       - name: Build stack
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
-          echo "::set-output name=steps.stack_cache.outputs.cache-hit::false"
+          ${{ env.GAH }} -c showEnv
           cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
-          ls -al ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/
-          ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
           ls -al ${{ github.workspace }}
+          ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
+          stack exec -- ghc -V
 
-      - name: Cleanup
-        run: rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
+  # Unfortunately there are no parameter driven jobs or job templates
+  job_2a:
+    name: Hets Desktop
+    runs-on: ubuntu-18.04
+    needs: job_1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Fetch stack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.STACK_ROOT }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
+
+      # Try to re-use the stuff from a previous run
+      - name: Download Artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+        with:
+          name: hets-desktop
+          path: ../hets.tzst
+
+      - name: Build
+        run: |
+          sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
+          ${{ env.GAH }} -c showEnv
+          # Update stack info
+          make stack
+          make hets.bin
+          # 250+ MB git info is far too much bloat: blow it away
+          rm -rf .git
+          /bin/tar --posix --use-compress-program zstd -T0 -cf ../desktop.tzst .
+          ./hets.bin -V
+
+      # Actually we need it for tests, only. So 1h would be enough.
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: hets-desktop
+          path: ${{ github.workspace }}/../hets.tzst
+          retention-days: 1
+
+  job_2b:
+    name: Hets Server
+    runs-on: ubuntu-18.04
+    needs: job_1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Fetch stack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.STACK_ROOT }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
+
+      # Try to re-use the stuff from a previous run
+      - name: Download Artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+        with:
+          name: hets-server
+          path: ../hets.tzst
+
+      - name: Build
+        run: |
+          sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
+          ${{ env.GAH }} -c showEnv
+          # Update stack info
+          make stack
+          make hets_server.bin || true
+          # 250+ MB git info is far too much bloat: blow it away
+          rm -rf .git
+          /bin/tar --posix --use-compress-program zstd -T0 -cf ../hets.tzst .
+          ./hets_server.bin -V
+
+      # Actually we need it for tests, only. So 1h would be enough.
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: hets-server
+          path: ${{ github.workspace }}
+          retention-days: 1
