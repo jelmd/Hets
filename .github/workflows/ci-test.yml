@@ -17,6 +17,7 @@ env:
   STACK_ROOT: /var/tmp/hets/stack
   GAH: utils/gha-helper.sh
   MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
+  HETS_ARC: ${{ runner.workspace }}/hets.tzst
   # GHA var settings totally sucks: impossible to use already defined vars =8-(
   #HETS_BASEDIR: /var/tmp/hets
   #HETS_BUILD_DIR: ${HETS_BASEDIR}/build
@@ -126,23 +127,18 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
-      # Try to re-use the stuff from a previous run
-      - name: Download Artifact
-        continue-on-error: true
-        uses: actions/download-artifact@v2
-        with:
-          name: hets-desktop
-          path: ../hets.tzst
-
-      - name: Build hets
+      - name: Environment
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GAH }} -c showEnv
+
+      - name: Build hets
+        run: |
           # Update stack info
           make stack
           make hets.bin
           # 250+ MB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git -cplf ../hets.tzst .
+          /bin/tar -H posix -I zstd --exclude=.git -cplf ${{ env.HETS_ARC }} .
           ./hets.bin -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
@@ -151,7 +147,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: hets-desktop
-          path: ${{ github.workspace }}/../hets.tzst
+          path: ${{ env.HETS_ARC }}
           retention-days: 1
 
   job_2b:
@@ -175,23 +171,25 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
-      # Try to re-use the stuff from a previous run
       - name: Download Artifact
         continue-on-error: true
         uses: actions/download-artifact@v2
         with:
           name: hets-server
-          path: ../hets.tzst
+          path: ${{ env.HETS_ARC }}
 
-      - name: Build hets
+      - name: Environment
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GAH }} -c showEnv
+
+      - name: Build hets
+        run: |
           # Update stack info
           make stack
           make hets_server.bin || true
           # 258+ MiB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git -cplf ../hets.tzst .
+          /bin/tar -H posix -I zstd --exclude=.git -cplf ${{ env.HETS_ARC }} .
           ./hets_server.bin -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
@@ -200,5 +198,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: hets-server
-          path: ../hets.tzst
+          path: ${{ env.HETS_ARC }}
           retention-days: 1
