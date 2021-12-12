@@ -31,9 +31,7 @@ env:
   MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
   HETS_ARC: /var/tmp/hets/hets.tzst
   PREFIX: /var/tmp/hets/hets-install
-  HETS_LIB: ${{ env.PREFIX }}/lib/hets/hets-lib
-  #PATH: ${PREFIX}/bin:${STACK_ROOT}/bin:${PATH}
-  #HETS_MAGIC: ${TRAVIS_BUILD_DIR}/magic/hets.magic
+  HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
 
 # When to trigger this workflow
 on:
@@ -239,6 +237,11 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
+      - name: Environment
+        run: |
+          sudo cp -p ksh93 /bin/ksh93
+          ${{ env.GAH }} -c showEnv
+
       - name: Test
         run: |
           make stack
@@ -265,6 +268,11 @@ jobs:
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
 
+      - name: Environment
+        run: |
+          sudo cp -p ksh93 /bin/ksh93
+          ${{ env.GAH }} -c showEnv
+
       - name: Test
         run: HETS_OWL_TOOLS=${{ env.PREFIX }}/lib/hets/hets-owl-tools ./test/hets-lib-check.sh all
 
@@ -290,6 +298,11 @@ jobs:
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+
+      - name: Environment
+        run: |
+          sudo cp -p ksh93 /bin/ksh93
+          ${{ env.GAH }} -c showEnv
 
       - name: Test
         run: |
@@ -318,6 +331,11 @@ jobs:
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+
+      - name: Environment
+        run: |
+          sudo cp -p ksh93 /bin/ksh93
+          ${{ env.GAH }} -c showEnv
 
       - name: Test
         run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${PREFIX}/bin:${PATH} ./test/hets-lib-database-check.sh -a 'SQLite'
