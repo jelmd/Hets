@@ -257,6 +257,16 @@ jobs:
           sudo cp -p ksh93 /bin/ksh93
           ln -s hets_server.bin hets || true
 
+      # Add missing packages. Since it is not a minimal server image, almost
+      # everything is already installed. But this makes update time longer: 13s
+      - name: Update packages
+        if: steps.stack_cache.outputs.cache-hit != 'true'
+        run: |
+          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install ksh93 || sudo apt-get install ksh
+          sudo apt-get install ${{ env.MISSING_PKGS }}
+
       - name: Fetch stack cache
         uses: actions/cache@v2
         with:
