@@ -260,11 +260,9 @@ jobs:
       # Add missing packages. Since it is not a minimal server image, almost
       # everything is already installed. But this makes update time longer: 13s
       - name: Update packages
-        if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install ${{ env.MISSING_PKGS }}
 
       - name: Fetch stack cache
@@ -280,8 +278,7 @@ jobs:
 
       - name: Test
         run: |
-          rm -rf .stack-work
-          make stack
+          make restack
           make check
 
   job_3b:
@@ -289,6 +286,7 @@ jobs:
     name: Test Hets-Lib
     runs-on: ubuntu-18.04
     needs: job_2a
+    if: 0
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v2
@@ -321,6 +319,7 @@ jobs:
   job_3c:
     # Calls hets for several files in Hets-Lib. So the binary is needed, only.
     name: Test PostgreSQL DB
+    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -357,6 +356,7 @@ jobs:
   job_3d:
     # Same as 3c but for SQlite
     name: Test SQLite DB
+    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
