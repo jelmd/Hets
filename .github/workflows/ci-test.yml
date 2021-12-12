@@ -118,12 +118,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # Add missing packages, but leave man as is (saves ~ 15s).
-      - name: Update packages
-        run: |
-          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install ${{ env.MISSING_PKGS }}
+#      # Add missing packages, but leave man as is (saves ~ 15s).
+#      - name: Update packages
+#        run: |
+#          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+#          sudo rm -f /var/lib/man-db/auto-update
+#          sudo apt-get install ${{ env.MISSING_PKGS }}
 
         # Update stack - it blindly links in all extra-deps, no matter, what
         # flags.Hets say (or what is really needed) =8-(
@@ -141,15 +141,24 @@ jobs:
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          ls -al
+
+      # For test troubleshooting download artifacts to stats.iks.cs.ovgu.de/tmp/
+      # and uncomment this task, so that make gets skipped and the archive
+      # uploaded as is to be used in step_3+*.
+      - name: Fake Build
+        run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-server.tzst
 
       - name: Build
+        if: hashFiles( '${{ runner.temp }}/${{ env.HETS_ARC }}' ) == ''
         run: |
           make stack
           make hets_server.bin || true
+          wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-server.tzst
+          ln -s hets_server.bin hets
           cp -pL /bin/ksh93 .
           # 258+ MiB for .git is by far too much ...
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
-          ln -s hets_server.bin hets
           # gives us a proper exit code, too.
           ./hets -V
 
@@ -189,8 +198,16 @@ jobs:
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          ls -al
+
+      # For test troubleshooting download artifacts to stats.iks.cs.ovgu.de/tmp/
+      # and uncomment this task, so that make gets skipped and the archive
+      # uploaded as is to be used in step_3+*.
+      - name: Fake Build
+        run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-desktop.tzst
 
       - name: Build
+        if: hashFiles( '${{ runner.temp }}/${{ env.HETS_ARC }}' ) == ''
         run: |
           # make it uniform
           cp stack.yaml stack.yaml.orig
@@ -230,8 +247,9 @@ jobs:
 
       - name: Extract artifact
         run: |
-          ls -al ${{ runner.temp }}/${{ env.HETS_ARC }}
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
+          sudo cp -p ksh93 /bin/ksh93
+          ln -s hets_server.bin hets || true
 
       - name: Fetch stack cache
         uses: actions/cache@v2
@@ -241,8 +259,8 @@ jobs:
 
       - name: Environment
         run: |
-          sudo cp -p ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          ls -al
 
       - name: Test
         run: |
@@ -261,22 +279,24 @@ jobs:
           name: hets-server
           path: ${{ runner.temp }}
 
+      # stack is not needed
       - name: Extract artifact
-        run: tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
+        run: |
+          tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
+          sudo cp -p ksh93 /bin/ksh93
+          ln -s hets_server.bin hets || true
+          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
 
       - name: Install OWL tools
-        run: |
-          # stack is not needed
-          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
-          make install-owl-tools
+        run: make install-owl-tools
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
-          sudo cp -p ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          ls -al
 
       - name: Test
         run: HETS_OWL_TOOLS=${{ env.PREFIX }}/lib/hets/hets-owl-tools ./test/hets-lib-check.sh all
@@ -293,24 +313,24 @@ jobs:
           name: hets-server
           path: ${{ runner.temp }}
 
+      # stack is not needed
       - name: Extract artifact
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/
+          ln -s hets_server.bin hets || true
+          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
 
       - name: Install Hets Server
-        run: |
-          # stack is not needed
-          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
-          make install-hets_server
+        run: make install-hets_server
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
-          sudo cp -p ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          ls -al
 
       - name: Test
         run: |
@@ -329,24 +349,24 @@ jobs:
           name: hets-server
           path: ${{ runner.temp }}
 
+      # stack is not needed
       - name: Extract artifact
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/
+          ln -s hets_server.bin hets || true
+          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
 
       - name: Install Hets Server
-        run: |
-          # stack is not needed
-          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
-          make install-hets_server
+        run: make install-hets_server
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
-          sudo cp -p ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          ls -al
 
       - name: Test
         run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${PREFIX}/bin:${PATH} ./test/hets-lib-database-check.sh -a 'SQLite'
