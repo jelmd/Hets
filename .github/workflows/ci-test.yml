@@ -147,11 +147,11 @@ jobs:
           ls -al
 
       - name: Fake Build
-        if: ${{ ${{ env.FAKE_URL }} != '' }}
+        if: startsWith( ${{ env.FAKE_URL }}, 'http')
         run: wget --progress=dot -O ${{ runner.temp }}/${{ env.HETS_ARC }} ${{ env.FAKE_URL }}/hets-server.tzst
 
       - name: Build
-        if: ${{ ${{ env.FAKE_URL }} == '' }}
+        if: ! startsWith( ${{ env.FAKE_URL }}, 'http')
         run: |
           make stack
           make hets_server.bin || true
@@ -201,11 +201,11 @@ jobs:
           ls -al
 
       - name: Fake Build
-        if: ${{ ${{ env.FAKE_URL }} != '' }}
+        if: startsWith( ${{ env.FAKE_URL }}, 'http')
         run: wget --progress=dot -O ${{ runner.temp }}/${{ env.HETS_ARC }} ${{ env.FAKE_URL }}/hets-desktop.tzst
 
       - name: Build
-        if: ${{ ${{ env.FAKE_URL }} == '' }}
+        if: ! startsWith( ${{ env.FAKE_URL }}, 'http')
         run: |
           # make it uniform
           cp stack.yaml stack.yaml.orig
