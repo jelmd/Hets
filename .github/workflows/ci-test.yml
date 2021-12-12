@@ -129,7 +129,7 @@ jobs:
         # flags.Hets say (or what is really needed) =8-(
         # We need to do it here, otherwise the hash changes and stack ...
       - name: Adjust stack.yaml
-          sed -i.orig -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
+        run: sed -i.orig -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
         
       - name: Fetch stack cache
         uses: actions/cache@v2
