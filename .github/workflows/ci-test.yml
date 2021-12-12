@@ -24,7 +24,7 @@ env:
   # does not work for stack - not enough space. /tmp as well as /var/tmp are on
   # /dev/sd*.
   STACK_ROOT: /var/tmp/hets/stack
-  GHAH: utils/gah-helper.sh
+  GHAH: utils/gha-helper.sh
   MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
   HETS_ARC: hets.tzst
   PREFIX: /var/tmp/hets/hets-install
