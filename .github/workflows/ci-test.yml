@@ -31,7 +31,7 @@ env:
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
   # URL to use to skip hets builds and download the artifacts hets-server.tzst
   # and hets-desktop.tzst instead. Save a lot of time when troubleshooting tests
-  FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
+  #FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
 
 # When to trigger this workflow
 on:
@@ -136,6 +136,11 @@ jobs:
         if: startsWith(env.FAKE_URL, 'http') == false
         run: sed -i.orig -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
         
+      - name: cache0
+        run:
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
+
       - name: Fetch stack cache
         if: startsWith(env.FAKE_URL, 'http') == false
         uses: actions/cache@v2
@@ -166,6 +171,10 @@ jobs:
           # gives us a proper exit code, too.
           ./hets -V
 
+      - name: cache0
+        run:
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
+
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
       - name: Upload Artifact
@@ -174,6 +183,28 @@ jobs:
           name: hets-server
           path: ${{ runner.temp }}/${{ env.HETS_ARC }}
           retention-days: 1
+
+      - name: Upload Artifact2
+        uses: actions/upload-artifact@v2
+        with:
+          name: stack0
+          path: ${{ runner.temp }}/stack0.tzst
+          retention-days: 1
+
+      - name: Upload Artifact3
+        uses: actions/upload-artifact@v2
+        with:
+          name: hets0
+          path: ${{ runner.temp }}/hets0.tzst
+          retention-days: 1
+
+      - name: Upload Artifact4
+        uses: actions/upload-artifact@v2
+        with:
+          name: stack1
+          path: ${{ runner.temp }}/stack1.tzst
+          retention-days: 1
+
 
   # Unfortunately there are no parameter driven jobs or job templates. Should
   # we use GA helper script instead?
