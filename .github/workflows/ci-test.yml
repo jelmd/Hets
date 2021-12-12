@@ -115,6 +115,9 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
       # Add missing packages, but leave man as is (saves ~ 15s).
       - name: Update packages
         run: |
@@ -122,14 +125,17 @@ jobs:
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ${{ env.MISSING_PKGS }}
 
-      - name: Checkout
-        uses: actions/checkout@v2
-
+      - name: Adjust stack.yaml
+          # Update stack - it blindly links in all extra-deps, no matter, what
+          # flags.Hets say (or what is really needed) =8-(
+          # We need to do it here, otherwise the hash changes and stack ...
+          sed -i.orig -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
+        
       - name: Fetch stack cache
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
-          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
 
       - name: Environment
         run: |
@@ -138,9 +144,6 @@ jobs:
 
       - name: Build
         run: |
-          # Update stack - it blindly links in all extra-deps, no matter, what
-          # flags.Hets say (or what is really needed) =8-(
-          sed -i -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
           make stack
           make hets_server.bin || true
           cp -pL /bin/ksh93 .
@@ -189,6 +192,8 @@ jobs:
 
       - name: Build
         run: |
+          # make it uniform
+          cp stack.yaml stack.yaml.orig
           # Update stack info
           make stack
           make hets.bin
@@ -232,7 +237,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
-          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
 
       - name: Environment
         run: |
@@ -260,7 +265,10 @@ jobs:
         run: tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
 
       - name: Install OWL tools
-        run: make install-owl-tools
+        run: |
+          # stack is not needed
+          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
+          make install-owl-tools
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
@@ -291,7 +299,10 @@ jobs:
           sudo cp -p ksh93 /bin/
 
       - name: Install Hets Server
-        run: make install-hets_server
+        run: |
+          # stack is not needed
+          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
+          make install-hets_server
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
@@ -324,7 +335,10 @@ jobs:
           sudo cp -p ksh93 /bin/
 
       - name: Install Hets Server
-        run: make install-hets_server
+        run: |
+          # stack is not needed
+          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
+          make install-hets_server
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
