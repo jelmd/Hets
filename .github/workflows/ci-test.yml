@@ -142,13 +142,13 @@ jobs:
           # flags.Hets say (or what is really needed) =8-(
           sed -i -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
           make stack
-          #make hets_server.bin || true
+          make hets_server.bin || true
           cp -pL /bin/ksh93 .
           # 258+ MiB for .git is by far too much ...
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           ln -s hets_server.bin hets
           # gives us a proper exit code, too.
-          #./hets -V
+          ./hets -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
@@ -191,12 +191,12 @@ jobs:
         run: |
           # Update stack info
           make stack
-          #make hets.bin
+          make hets.bin
           # 250+ MB for .git is by far too much ...
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           cp -pL /bin/ksh93 .
           # gives us a proper exit code, too.
-          #./hets -V
+          ./hets -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
