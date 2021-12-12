@@ -113,55 +113,7 @@ jobs:
           ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
           stack exec -- ghc -V
 
-  # Unfortunately there are no parameter driven jobs or job templates. Should
-  # we use GHA helper script instead?
   job_2a:
-    name: Build Hets Desktop
-    runs-on: ubuntu-18.04
-    needs: job_1
-    steps:
-      # Add missing packages, but leave man as is (saves ~ 15s).
-      - name: Update packages
-        run: |
-          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install ${{ env.MISSING_PKGS }}
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Fetch stack cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.STACK_ROOT }}
-          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
-
-      - name: Environment
-        run: |
-          sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
-          ${{ env.GAH }} -c showEnv
-
-      - name: Build
-        run: |
-          # Update stack info
-          make stack
-          make hets.bin
-          # 250+ MB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
-          cp -pL /bin/ksh93 .
-          # gives us a proper exit code, too.
-          ./hets -V
-
-      # Actually we need it for tests, only. So 1h retention would be enough.
-      # ~ 206 MiB which saves us ~ 25 min.
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: hets-desktop
-          path: ${{ env.HETS_ARC }}
-          retention-days: 1
-
-  job_2b:
     name: Build Hets Server
     runs-on: ubuntu-18.04
     needs: job_1
@@ -193,7 +145,7 @@ jobs:
           # flags.Hets say (or what is really needed) =8-(
           sed -i -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
           make stack
-          make hets_server.bin || true
+          #make hets_server.bin || true
           cp -pL /bin/ksh93 .
           # 258+ MiB for .git is by far too much ...
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
@@ -210,6 +162,53 @@ jobs:
           path: ${{ env.HETS_ARC }}
           retention-days: 1
 
+  # Unfortunately there are no parameter driven jobs or job templates. Should
+  # we use GHA helper script instead?
+  job_2b:
+    name: Build Hets Desktop
+    runs-on: ubuntu-18.04
+    needs: job_1
+    steps:
+      # Add missing packages, but leave man as is (saves ~ 15s).
+      - name: Update packages
+        run: |
+          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install ${{ env.MISSING_PKGS }}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Fetch stack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.STACK_ROOT }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
+
+      - name: Environment
+        run: |
+          sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
+          ${{ env.GAH }} -c showEnv
+
+      - name: Build
+        run: |
+          # Update stack info
+          make stack
+          #make hets.bin
+          # 250+ MB for .git is by far too much ...
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
+          cp -pL /bin/ksh93 .
+          # gives us a proper exit code, too.
+          ./hets -V
+
+      # Actually we need it for tests, only. So 1h retention would be enough.
+      # ~ 206 MiB which saves us ~ 25 min.
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: hets-desktop
+          path: ${{ env.HETS_ARC }}
+          retention-days: 1
 
   ###################### TESTING ######################
   # We prefer the server build because it is more or less a subset of the
@@ -219,7 +218,7 @@ jobs:
     # Runs/compiles/executes? haskell related tests in several subdirs.
     name: Test subdirs
     runs-on: ubuntu-18.04
-    needs: job_2b
+    needs: job_2a
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v2
@@ -228,7 +227,11 @@ jobs:
           path: ${{ env.HETS_ARC }}
 
       - name: Extract artifact
-        run: tar -H posix -I zstd -xf ${{ env.HETS_ARC }}
+        run: |
+          ls -al ${{ env.HETS_ARC }}
+          ls -al
+          ls -al  /var/tmp/hets
+          tar -H posix -I zstd -xf ${{ env.HETS_ARC }}
 
       - name: Fetch stack cache
         uses: actions/cache@v2
@@ -250,7 +253,7 @@ jobs:
     # Calls hets for several files in Hets-Lib. So the binary is needed, only.
     name: Test Hets-Lib
     runs-on: ubuntu-18.04
-    needs: job_2b
+    needs: job_2a
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v2
@@ -279,7 +282,7 @@ jobs:
     # Calls hets for several files in Hets-Lib. So the binary is needed, only.
     name: Test PostgreSQL DB
     runs-on: ubuntu-18.04
-    needs: job_2b
+    needs: job_2a
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v2
@@ -312,7 +315,7 @@ jobs:
     # Same as 3c but for SQlite
     name: Test SQLite DB
     runs-on: ubuntu-18.04
-    needs: job_2b
+    needs: job_2a
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v2
