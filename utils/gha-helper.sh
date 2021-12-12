@@ -19,7 +19,7 @@ for H in log.kshlib man.kshlib ; do
 	[[ -r $X ]] && . $X && continue
 	X=${ whence $H; }
 	[[ -z $X ]] && print -u2 "$H not found - exiting." && exit 1
-	. $X 
+	. $X
 done
 unset H
 
@@ -51,14 +51,9 @@ function showEnv {
 	if [[ -n $1 ]]; then
 		set
 	else
-		# ${{github.workspace}}/build  ${{env.BUILD_TYPE}}
-		# CI=true                   RUNNER_WORKSPACE=/home/runner/work/$REPO
-		# GITHUB_WORKFLOW=CI-Test   GITHUB_WORKSPACE=${RUNNER_WORKSPACE}/$REPO
-		# GITHUB_EVENT_NAME=push    GITHUB_REPOSITORY=jelmd/$REPO
-		# GITHUB_REF_TYPE=branch    GITHUB_REF=refs/heads/$BRANCH
 		# GITHUB_{PATH,ENV,SHA,RUN_ID} sind bei jedem run anders (leere files)
 		set | egrep '^(GITHUB|RUNNER)_'
-		print "STACK_ROOT=${STACK_ROOT}"
+		print "STACK_ROOT=${STACK_ROOT}\nGAH=${GHA}\nHETS_ARC=${HETS_ARC}"
 	fi
 	Log.printMarker
 	typeset T=${ nproc; } M=${ grep '^model name' /proc/cpuinfo | head -1; }
@@ -70,43 +65,6 @@ function showEnv {
 	networkctl
 	networkctl status
 	Log.printMarker
-}
-
-function getStackHash {
-	:
-}
-
-Man.addFunc makeStack '' '[+NAME?makeStack - prepare and make stack as needed.]
-[+DESCRIPTION?If there is a file \b${STACK_ROOT}.tgz\b it gets extracted as is in \b${STACK_ROOT}/../\b and if \b${STACK_ROOT}/ok\b exists, it is assumed, that the extracted archive contains the pre-build working stack. In this case the archive gets removed and exit code 0 returned. Otherwise it calls \bmake stack\b in \b${GITHUB_WORKSPACE}/\b and on success it finally archives the \b${STACK_ROOT}/\b without any docs to \b${STACK_ROOT}.tgz\b for an artifact upload.]
-[+?To force a rebuild of the stack, simply remove the related artifact from the artifact store before calling this function.]
-[+RETURN CODES]{
-[+0?On success.]
-[+>0?Otherwise the exit code returned by \bmake stack\b.]
-}
-'
-function makeStack {
-	integer RES=0
-
-	if [[ -f ${STACK_ROOT}.tgz ]]; then
-		cd ${STACK_ROOT}/.. && tar xzf ${STACK_ROOT}.tgz
-		[[ -e ${STACK_ROOT}/ok ]] && return 0
-	fi
-	cd ${GITHUB_WORKSPACE}
-	make stack && touch ${STACK_ROOT}/ok || RES=$?
-	rm -rf ${STACK_ROOT}/programs/x86_64-linux/*/share/doc
-	cd ${STACK_ROOT}/..
-	rm -f ${STACK_ROOT}.tgz
-	tar cplzf ${STACK_ROOT}.tgz --exclude=.git  ${STACK_ROOT##*/}
-	ls -al ${STACK_ROOT}.tgz
-	return ${RES}
-}
-
-function makeStackx {
-	cp /bin/true ${STACK_ROOT}.tgz
-	Log.warn "GITHUB_PATH ($GITHUB_PATH)"
-	cat ${GITHUB_PATH}
-	Log.warn "GITHUB_ENV ($GITHUB_ENV)"
-	cat ${GITHUB_ENV}
 }
 
 Man.addFunc MAIN '' '[+NAME?'"${PROG}"' - helper script for Hets Github Actions.]

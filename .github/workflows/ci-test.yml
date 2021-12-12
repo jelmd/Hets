@@ -1,15 +1,27 @@
+# NOTE: Ressourcs for public repos: see Account/Org Settings | Billing & plans:
+#	- 2000 min/month (== 16 US$)
+#		- linux devisor: 1
+#		- macosx devisor: 10 => 200 min/month
+#		- windows devisor: 2 => 1000 min/month
+#	- 10 GB cache storage
+#		- delete on demand: FIFO
+#	- package/action storage: 500 MB
+#	- total concurent jobs:
+#		- linux: 20
+#		- macos: 5
+#	- max job execution time: 6 h
+#	- max workflow execution time: 72 h
+#	- API requests: 1000 req/h
+#	- matrix generated jobs/workflow: max. 256
+#	- max. workflows: 500 every 10 s
+
 # Build hets and run related tests for CI
 name: CI-Tests
 
 env:
-  SKIP_STACK: 0
-  SKIP_BUILD: 0
   SKIP_TEST: 0
   SKIP_HADDOCK: 0
-  #PKG_CACHE: /var/tmp/pkgs
-  SMART_CACHE: 1
   NO_DOCS: 1
-  #MKDBG: 1
   # Dir cannot be directly in /tmp or /var/tmp because Microsoft does not
   # understand dir mode 01777 and errors out with dumb messages. /dev/shm/
   # does not work for stack - not enough space. /tmp as well as /var/tmp are on
@@ -18,12 +30,9 @@ env:
   GAH: utils/gha-helper.sh
   MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
   HETS_ARC: /var/tmp/hets/hets.tzst
-  # GHA var settings totally sucks: impossible to use already defined vars =8-(
-  #HETS_BASEDIR: /var/tmp/hets
-  #HETS_BUILD_DIR: ${HETS_BASEDIR}/build
-  #PREFIX: /tmp/hets-install
+  PREFIX: /var/tmp/hets/hets-install
+  HETS_LIB: ${{ env.PREFIX }}/lib/hets/hets-lib
   #PATH: ${PREFIX}/bin:${STACK_ROOT}/bin:${PATH}
-  #HETS_LIB: /var/tmp/Hets-lib
   #HETS_MAGIC: ${TRAVIS_BUILD_DIR}/magic/hets.magic
 
 # When to trigger this workflow
@@ -54,7 +63,7 @@ jobs:
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong. E.g. stack
     # sometimes goes in an endless loop. We prefer to kill instead of wasting
-    # valueable credits (2000 min/month). 
+    # valueable credits (2000 min/month).
     timeout-minutes: 30
     steps:
       # Info about the running environment makes troubleshooting easier. < 1s
@@ -97,6 +106,8 @@ jobs:
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           ${{ env.GAH }} -c showEnv
+          # bogus stack
+          unsetenv POSIXLY_CORRECT
           cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
@@ -111,7 +122,7 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
-       # Add missing packages, but leave man as is (saves ~ 15s).
+      # Add missing packages, but leave man as is (saves ~ 15s).
       - name: Update packages
         run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
@@ -138,8 +149,11 @@ jobs:
           make stack
           make hets.bin
           # 250+ MB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git -cplf ${{ env.HETS_ARC }} .
-          ./hets.bin -V
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
+          ln -s hets.bin hets
+          cp -pL /bin/ksh93 .
+          # gives us a proper exit code, too.
+          ./hets -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
@@ -155,7 +169,7 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
-       # Add missing packages, but leave man as is (saves ~ 15s).
+      # Add missing packages, but leave man as is (saves ~ 15s).
       - name: Update packages
         run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
@@ -171,13 +185,6 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
-      - name: Download Artifact
-        continue-on-error: true
-        uses: actions/download-artifact@v2
-        with:
-          name: hets-server
-          path: ${{ env.HETS_ARC }}
-
       - name: Environment
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
@@ -185,12 +192,17 @@ jobs:
 
       - name: Build hets
         run: |
-          # Update stack info
+          # Update stack - it blindly links in all extra-deps, no matter, what
+          # flags.Hets say (or what is really needed) =8-(
+          sed -i -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
           make stack
           make hets_server.bin || true
+          cp -pL /bin/ksh93 .
           # 258+ MiB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git -cplf ${{ env.HETS_ARC }} .
-          ./hets_server.bin -V
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
+          ln -s hets_server.bin hets
+          # gives us a proper exit code, too.
+          ./hets -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
@@ -200,3 +212,112 @@ jobs:
           name: hets-server
           path: ${{ env.HETS_ARC }}
           retention-days: 1
+
+
+  ###################### TESTING ######################
+  # We prefer the server build because it is more or less a subset of the
+  # desktop version. So if server binary works, desktop binary should work
+  # as well. This also frees us from installing missing GUI deps.
+  job_3a:
+    # Runs/compiles/executes? haskell related tests in several subdirs.
+    name: Run checks
+    runs-on: ubuntu-18.04
+    needs: job_2b
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: hets-server
+          path: ${{ env.HETS_ARC }}
+
+      - name: Extract artifact
+        run: tar -H posix -I zstd -cxf ${{ env.HETS_ARC }}
+
+      - name: Fetch stack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.STACK_ROOT }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
+
+      - name: Test
+        run: |
+          make stack
+          make check
+
+  job_3b:
+    # Calls hets for several files in Hets-Lib. So the binary is needed, only.
+    name: Test Hets-Lib
+    runs-on: ubuntu-18.04
+    needs: job_2b
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: hets-server
+          path: ${{ env.HETS_ARC }}
+
+      - name: Extract artifact
+        run: tar -H posix -I zstd -cxf ${{ env.HETS_ARC }}
+
+      - name: Install OWL tools
+        run: make install-owl-tools
+
+      - name: Checkout Hets-lib
+        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+
+      - name: Test
+        run: HETS_OWL_TOOLS=${{ env.PREFIX }}/lib/hets/hets-owl-tools ./test/hets-lib-check.sh all
+
+  job_3c:
+    # Calls hets for several files in Hets-Lib. So the binary is needed, only.
+    name: Test PostgreSQL DB
+    runs-on: ubuntu-18.04
+    needs: job_2b
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: hets-server
+          path: ${{ env.HETS_ARC }}
+
+      - name: Extract artifact
+        run: |
+          tar -H posix -I zstd -cxf ${{ env.HETS_ARC }}
+          sudo cp -p ksh93 /bin/
+
+      - name: Install Hets Server
+        run: make install-hets_server
+
+      - name: Checkout Hets-lib
+        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+
+      - name: Test
+        run: |
+          sudo systemctl stop postgresql || true
+          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${PREFIX}/bin:${PATH} ./test/hets-lib-database-check.sh -a 'PostgreSQL'
+
+  job_3d:
+    # Same as 3c but for SQlite
+    name: Test SQLite DB
+    runs-on: ubuntu-18.04
+    needs: job_2b
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: hets-server
+          path: ${{ env.HETS_ARC }}
+
+      - name: Extract artifact
+        run: |
+          tar -H posix -I zstd -cxf ${{ env.HETS_ARC }}
+          sudo cp -p ksh93 /bin/
+
+      - name: Install Hets Server
+        run: make install-hets_server
+
+      - name: Checkout Hets-lib
+        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+
+      - name: Test
+        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${PREFIX}/bin:${PATH} ./test/hets-lib-database-check.sh -a 'SQLite'
