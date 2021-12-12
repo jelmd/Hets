@@ -111,6 +111,10 @@ jobs:
           rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
           ls -al ${{ github.workspace }}
           ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
+
+      - name: Version
+        run: |
+          stack --version
           stack exec -- ghc -V
 
   job_2a:
@@ -145,7 +149,7 @@ jobs:
 
       - name: cache0
         run: |
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
+          /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
 
       - name: Environment
@@ -153,6 +157,8 @@ jobs:
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          stack --version
+          stack exec -- ghc -V
           ls -al
 
       - name: Fake Build
@@ -167,13 +173,12 @@ jobs:
           ln -s hets_server.bin hets
           cp -pL /bin/ksh93 .
           # 258+ MiB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           # gives us a proper exit code, too.
           ./hets -V
 
       - name: cache1
-        run:
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
+        run: /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
 
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
@@ -237,6 +242,8 @@ jobs:
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
+          stack --version
+          stack exec -- ghc -V
           ls -al
 
       - name: Fake Build
@@ -252,7 +259,7 @@ jobs:
           make stack
           make hets.bin
           # 250+ MB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           cp -pL /bin/ksh93 .
           # gives us a proper exit code, too.
           ./hets -V
@@ -305,6 +312,8 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
+          stack --version
+          stack exec -- ghc -V
           ls -al
 
       - name: Test
@@ -342,6 +351,8 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
+          stack --version
+          stack exec -- ghc -V
           ls -al
 
       - name: Test
@@ -377,6 +388,8 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
+          stack --version
+          stack exec -- ghc -V
           ls -al
 
       - name: Test
@@ -414,6 +427,8 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
+          stack --version
+          stack exec -- ghc -V
           ls -al
 
       - name: Test
