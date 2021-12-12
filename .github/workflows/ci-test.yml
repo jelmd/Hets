@@ -280,7 +280,8 @@ jobs:
 
       - name: Test
         run: |
-          make restack
+          rm -rf .stack-work
+          make stack
           make check
 
   job_3b:
