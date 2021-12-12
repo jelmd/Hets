@@ -29,6 +29,9 @@ env:
   HETS_ARC: hets.tzst
   PREFIX: /var/tmp/hets/hets-install
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
+  # URL to use to skip hets builds and download the artifacts hets-server.tzst
+  # and hets-desktop.tzst instead. Save a lot of time when troubleshooting tests
+  FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
 
 # When to trigger this workflow
 on:
@@ -143,18 +146,15 @@ jobs:
           ${{ env.GHAH }} -c showEnv
           ls -al
 
-      # For test troubleshooting download artifacts to stats.iks.cs.ovgu.de/tmp/
-      # and uncomment this task, so that make gets skipped and the archive
-      # uploaded as is to be used in step_3+*.
       - name: Fake Build
-        run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-server.tzst
+        if: ${{ env.FAKE_URL }}
+        run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} ${{ env.FAKE_URL }}/hets-server.tzst
 
       - name: Build
-        if: hashFiles( "${{ runner.temp }}/${{ env.HETS_ARC }}" ) == ''
+        if: ! ${{ env.FAKE_URL }}
         run: |
           make stack
           make hets_server.bin || true
-          wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-server.tzst
           ln -s hets_server.bin hets
           cp -pL /bin/ksh93 .
           # 258+ MiB for .git is by far too much ...
@@ -200,14 +200,12 @@ jobs:
           ${{ env.GHAH }} -c showEnv
           ls -al
 
-      # For test troubleshooting download artifacts to stats.iks.cs.ovgu.de/tmp/
-      # and uncomment this task, so that make gets skipped and the archive
-      # uploaded as is to be used in step_3+*.
       - name: Fake Build
-        run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-desktop.tzst
+        if: ${{ env.FAKE_URL }}
+        run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} ${{ env.FAKE_URL }}/hets-desktop.tzst
 
       - name: Build
-        if: hashFiles( "${{ runner.temp }}/${{ env.HETS_ARC }}" ) == ''
+        if: ! ${{ env.FAKE_URL }}
         run: |
           # make it uniform
           cp stack.yaml stack.yaml.orig
