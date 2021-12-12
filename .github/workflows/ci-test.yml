@@ -151,7 +151,7 @@ jobs:
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
           ln -s hets_server.bin hets
           # gives us a proper exit code, too.
-          ./hets -V
+          #./hets -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
@@ -199,7 +199,7 @@ jobs:
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
           cp -pL /bin/ksh93 .
           # gives us a proper exit code, too.
-          ./hets -V
+          #./hets -V
 
       # Actually we need it for tests, only. So 1h retention would be enough.
       # ~ 206 MiB which saves us ~ 25 min.
