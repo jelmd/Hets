@@ -19,17 +19,14 @@
 name: CI-Tests
 
 env:
-  SKIP_TEST: 0
-  SKIP_HADDOCK: 0
-  NO_DOCS: 1
   # Dir cannot be directly in /tmp or /var/tmp because Microsoft does not
   # understand dir mode 01777 and errors out with dumb messages. /dev/shm/
   # does not work for stack - not enough space. /tmp as well as /var/tmp are on
   # /dev/sd*.
   STACK_ROOT: /var/tmp/hets/stack
-  GAH: utils/gha-helper.sh
+  GHAH: utils/gah-helper.sh
   MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
-  HETS_ARC: /var/tmp/hets/hets.tzst
+  HETS_ARC: hets.tzst
   PREFIX: /var/tmp/hets/hets-install
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
 
@@ -103,7 +100,7 @@ jobs:
       - name: Build
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
-          ${{ env.GAH }} -c showEnv
+          ${{ env.GHAH }} -c showEnv
           # bogus stack
           unsetenv POSIXLY_CORRECT
           cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
@@ -137,7 +134,7 @@ jobs:
       - name: Environment
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
-          ${{ env.GAH }} -c showEnv
+          ${{ env.GHAH }} -c showEnv
 
       - name: Build
         run: |
@@ -148,7 +145,7 @@ jobs:
           #make hets_server.bin || true
           cp -pL /bin/ksh93 .
           # 258+ MiB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           ln -s hets_server.bin hets
           # gives us a proper exit code, too.
           #./hets -V
@@ -159,11 +156,11 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: hets-server
-          path: ${{ env.HETS_ARC }}
+          path: ${{ runner.temp }}/${{ env.HETS_ARC }}
           retention-days: 1
 
   # Unfortunately there are no parameter driven jobs or job templates. Should
-  # we use GHA helper script instead?
+  # we use GA helper script instead?
   job_2b:
     name: Build Hets Desktop
     runs-on: ubuntu-18.04
@@ -188,7 +185,7 @@ jobs:
       - name: Environment
         run: |
           sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
-          ${{ env.GAH }} -c showEnv
+          ${{ env.GHAH }} -c showEnv
 
       - name: Build
         run: |
@@ -196,7 +193,7 @@ jobs:
           make stack
           #make hets.bin
           # 250+ MB for .git is by far too much ...
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ env.HETS_ARC }} .
+          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           cp -pL /bin/ksh93 .
           # gives us a proper exit code, too.
           #./hets -V
@@ -207,7 +204,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: hets-desktop
-          path: ${{ env.HETS_ARC }}
+          path: ${{ runner.temp }}/${{ env.HETS_ARC }}
           retention-days: 1
 
   ###################### TESTING ######################
@@ -224,14 +221,12 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: hets-server
-          path: ${{ env.HETS_ARC }}
+          path: ${{ runner.temp }}
 
       - name: Extract artifact
         run: |
-          ls -al ${{ env.HETS_ARC }}
-          ls -al
-          ls -al  /var/tmp/hets
-          tar -H posix -I zstd -xf ${{ env.HETS_ARC }}
+          ls -al ${{ runner.temp }}/${{ env.HETS_ARC }}
+          tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
 
       - name: Fetch stack cache
         uses: actions/cache@v2
@@ -242,7 +237,7 @@ jobs:
       - name: Environment
         run: |
           sudo cp -p ksh93 /bin/ksh93
-          ${{ env.GAH }} -c showEnv
+          ${{ env.GHAH }} -c showEnv
 
       - name: Test
         run: |
@@ -259,10 +254,10 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: hets-server
-          path: ${{ env.HETS_ARC }}
+          path: ${{ runner.temp }}
 
       - name: Extract artifact
-        run: tar -H posix -I zstd -xf ${{ env.HETS_ARC }}
+        run: tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
 
       - name: Install OWL tools
         run: make install-owl-tools
@@ -273,7 +268,7 @@ jobs:
       - name: Environment
         run: |
           sudo cp -p ksh93 /bin/ksh93
-          ${{ env.GAH }} -c showEnv
+          ${{ env.GHAH }} -c showEnv
 
       - name: Test
         run: HETS_OWL_TOOLS=${{ env.PREFIX }}/lib/hets/hets-owl-tools ./test/hets-lib-check.sh all
@@ -288,11 +283,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: hets-server
-          path: ${{ env.HETS_ARC }}
+          path: ${{ runner.temp }}
 
       - name: Extract artifact
         run: |
-          tar -H posix -I zstd -xf ${{ env.HETS_ARC }}
+          tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/
 
       - name: Install Hets Server
@@ -304,7 +299,7 @@ jobs:
       - name: Environment
         run: |
           sudo cp -p ksh93 /bin/ksh93
-          ${{ env.GAH }} -c showEnv
+          ${{ env.GHAH }} -c showEnv
 
       - name: Test
         run: |
@@ -321,11 +316,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: hets-server
-          path: ${{ env.HETS_ARC }}
+          path: ${{ runner.temp }}
 
       - name: Extract artifact
         run: |
-          tar -H posix -I zstd -xf ${{ env.HETS_ARC }}
+          tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/
 
       - name: Install Hets Server
@@ -337,7 +332,7 @@ jobs:
       - name: Environment
         run: |
           sudo cp -p ksh93 /bin/ksh93
-          ${{ env.GAH }} -c showEnv
+          ${{ env.GHAH }} -c showEnv
 
       - name: Test
         run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${PREFIX}/bin:${PATH} ./test/hets-lib-database-check.sh -a 'SQLite'

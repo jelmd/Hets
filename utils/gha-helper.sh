@@ -53,7 +53,7 @@ function showEnv {
 	else
 		# GITHUB_{PATH,ENV,SHA,RUN_ID} sind bei jedem run anders (leere files)
 		set | egrep '^(GITHUB|RUNNER)_'
-		print "STACK_ROOT=${STACK_ROOT}\nGAH=${GHA}\nHETS_ARC=${HETS_ARC}"
+		print "STACK_ROOT=${STACK_ROOT}\nGHAH=${GHAH}\nHETS_ARC=${HETS_ARC}"
 	fi
 	Log.printMarker
 	typeset T=${ nproc; } M=${ grep '^model name' /proc/cpuinfo | head -1; }
