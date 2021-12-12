@@ -137,7 +137,7 @@ jobs:
         run: sed -i.orig -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
         
       - name: cache0
-        run:
+        run: |
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
 
