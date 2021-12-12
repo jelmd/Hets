@@ -150,7 +150,7 @@ jobs:
         run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-server.tzst
 
       - name: Build
-        if: hashFiles( ${{ runner.temp }}/${{ env.HETS_ARC }} ) == ''
+        if: hashFiles( "${{ runner.temp }}/${{ env.HETS_ARC }}" ) == ''
         run: |
           make stack
           make hets_server.bin || true
@@ -207,7 +207,7 @@ jobs:
         run: wget -O ${{ runner.temp }}/${{ env.HETS_ARC }} http://stats.iks.cs.ovgu.de/tmp/hets-desktop.tzst
 
       - name: Build
-        if: hashFiles( ${{ runner.temp }}/${{ env.HETS_ARC }} ) == ''
+        if: hashFiles( "${{ runner.temp }}/${{ env.HETS_ARC }}" ) == ''
         run: |
           # make it uniform
           cp stack.yaml stack.yaml.orig
