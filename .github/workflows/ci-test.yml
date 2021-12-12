@@ -125,7 +125,7 @@ jobs:
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ${{ env.MISSING_PKGS }}
 
-      - name: Adjust stack.yaml
+      - name: Adjust stack
           # Update stack - it blindly links in all extra-deps, no matter, what
           # flags.Hets say (or what is really needed) =8-(
           # We need to do it here, otherwise the hash changes and stack ...
