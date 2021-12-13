@@ -34,7 +34,7 @@ env:
   FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
   # If set to true, upload initial stack and hets src tree as stack0 and hets0
   # as well as the final stack (stack1) as well to the artifact storage.
-  DEBUG: false
+  DEBUG: 'false'
 
 # When to trigger this workflow
 on:
@@ -151,7 +151,7 @@ jobs:
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
 
       - name: cache0
-        if: env.DEBUG
+        if: env.DEBUG == 'true'
         run: |
           /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
@@ -182,7 +182,7 @@ jobs:
           ./hets -V
 
       - name: cache1
-        if: env.DEBUG
+        if: env.DEBUG == 'true'
         run: /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
 
       # Actually we need it for tests, only. So 1h retention would be enough.
@@ -195,7 +195,7 @@ jobs:
           retention-days: 1
 
       - name: Upload Artifact2
-        if: env.DEBUG
+        if: env.DEBUG == 'true'
         uses: actions/upload-artifact@v2
         with:
           name: stack0
@@ -203,7 +203,7 @@ jobs:
           retention-days: 1
 
       - name: Upload Artifact3
-        if: env.DEBUG
+        if: env.DEBUG == 'true'
         uses: actions/upload-artifact@v2
         with:
           name: hets0
@@ -211,7 +211,7 @@ jobs:
           retention-days: 1
 
       - name: Upload Artifact4
-        if: env.DEBUG
+        if: env.DEBUG == 'true'
         uses: actions/upload-artifact@v2
         with:
           name: stack1
