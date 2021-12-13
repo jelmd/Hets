@@ -1,10 +1,13 @@
-# NOTE: Resources for public repos: see Account/Org Settings | Billing & plans:
+###############################################################################
+# NOTE: Resource limits for public repos (last update: Dec. 2021)
+#       (see also on Github: Settings | Account/Org | Billing & plans):
 #	- 2000 min/month (== 16 US$)
 #		- linux devisor: 1
 #		- macosx devisor: 10 => 200 min/month
 #		- windows devisor: 2 => 1000 min/month
 #	- 10 GB cache storage
 #		- delete on demand: FIFO
+#		- max. retention: 90 days (if a file gets downloaded, counter restarts)
 #	- package/action storage: 500 MB
 #	- total concurent jobs:
 #		- linux: 20
@@ -15,23 +18,25 @@
 #	- matrix generated jobs/workflow: max. 256
 #	- max. workflows: 500 every 10 s
 #
-# Also note, that the jobs contain a lot of code duplication and thus one need
-# to take care to keep all in sync (GHA provides no proper alternatives). So
-# the only way to reduce the bloat and make stuff consistent is to move it to
-# the utils/gha-helper.sh script.
+# Also note, that the jobs contain a lot of code duplication and thus one needs
+# to take care to keep all jobs in sync (GHA provides no proper alternatives).
+# So the only way to reduce the bloat and make stuff consistent is to move it
+# to the utils/gha-helper.sh script.
 #
 # Last but not least take care wrt. conditional expressions - very bogus and
-# often do not, what the actual intention is (e.g. formats an expr as text and
-# compares the literal with null|'' for the result, or tags a logical not ('!')
-# as syntax error etc.). So one should really test this stuff before using it.
+# often do not, what the actual intention is (e.g. GHA formats an expr as text
+# if it encounters a '${{' and compares this literal with null|'' to decide
+# between true or false. Other wiered stuff: tags a logical not ('!') as syntax
+# error, etc.). So one should really test this stuff before using it.
  
 # NOTE wrt. stack:
 # Stack is not POSIX compatible wrt. passing arguments to called utils. So at
-# least when making/updateing stack, make sure POSIXLY_CORRECT is unset.
+# least on [re]make/update stack, make sure POSIXLY_CORRECT is unset.
 
 # Rule of thumb:
-# Download/Upload speed seen: ~ 10..30 MB/s for AWS ("intern"),
-#                                    5 MB/s extern (IKS).
+# Down/Upload speed seen: ~ 10..30 MB/s for AWS ("intern"), 5 MB/s extern (IKS).
+###############################################################################
+
 
 # Build hets and run related tests for CI
 name: CI-Tests
@@ -49,7 +54,7 @@ env:
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
   # URL to use to skip hets builds and download the artifacts hets-server.tzst
   # + hets-desktop.tzst instead. Saves a lot of time when troubleshooting tests.
-  #FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
+  FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
   # If set to true, upload initial stack and hets src tree as stack0 and hets0
   # as well as the final stack (stack1) to the artifact storage, too. Note that
   # the post build Hets dir gets always uploaded to the artifact repo and thus
@@ -60,7 +65,7 @@ env:
 on:
   push:
     branches:
-      - gha
+      - main
   pull_request:
     branches:
       - gha
@@ -84,7 +89,7 @@ jobs:
   # each job.
   ############################################################################
   job_1:
-    # Takes ~ 15..20 min | 30 s.
+    # Takes ~ 21 min | 30 s.
     name: Build Stack
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong and we want
@@ -108,7 +113,7 @@ jobs:
         uses: actions/checkout@v2
 
       # If stack.yaml has not been changed, we use the cached copy if available,
-      # which saves ~15..20 min. On hit (~ 495 MiB) it takes ~ 25 ± 5s.
+      # which saves ~ 20 min. On hit (~ 495 MiB) it takes ~ 25 ± 5s.
       # NOTE: There is no way to remove or update a cached file. So one needs
       # to modify stack.yaml to create a new cache entry =8-( . The action/cache
       # automagically uploads the stack before job completion, _if there is no_
@@ -122,6 +127,7 @@ jobs:
 
       # Install missing packages. Since it is not a minimal server image, almost
       # everything is already installed. Usually GUI stuff is missing, only.
+      # ~ 24 s.
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
@@ -130,6 +136,7 @@ jobs:
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install ${{ env.MISSING_GUI_PKGS }}
 
+      # ~ 20 min
       - name: Build
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
@@ -152,7 +159,7 @@ jobs:
   # and preserve the build dir for later testing.
   ############################################################################
   job_2a:
-    # Takes ~ 20 min | 45 s.
+    # Takes ~ 18 min | 45 s.
     name: Build Hets Server
     runs-on: ubuntu-18.04
     needs: job_1
@@ -181,7 +188,7 @@ jobs:
           tar -H posix -I zstd -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
           tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
 
-      # ~ 496 MiB
+      # ~ 496 MiB, 20 s
       - name: Upload cached stack
         if: env.DEBUG == 'true'
         uses: actions/upload-artifact@v2
@@ -198,10 +205,6 @@ jobs:
           name: hets0
           path: ${{ runner.temp }}/hets0.tzst
           retention-days: 1
-
-      - name: Archive post build stack
-        if: env.DEBUG == 'true'
-        run: /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
 
       - name: Environment
         if: startsWith(env.FAKE_URL, 'http') == false
@@ -224,11 +227,11 @@ jobs:
           make hets_server.bin || true
           ln -s hets_server.bin hets
           cp -pL /bin/ksh93 .
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
+          tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           # gives us a proper exit code, too.
           ./hets -V
 
-      # ~ 125 MiB , 14s
+      # ~ 125 MiB , 15s
       - name: Upload Hets build dir
         uses: actions/upload-artifact@v2
         with:
@@ -236,7 +239,11 @@ jobs:
           path: ${{ runner.temp }}/${{ env.HETS_ARC }}
           retention-days: 1
 
-      # ~ 496 MiB
+      - name: Archive post build stack
+        if: env.DEBUG == 'true'
+        run: tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
+
+      # ~ 496 MiB, 20 s
       - name: Upload post build stack
         if: env.DEBUG == 'true'
         uses: actions/upload-artifact@v2
@@ -247,12 +254,13 @@ jobs:
 
 
   job_2b:
-    # Takes ~ 20 min | 45 s.
+    # Takes ~ 19 min | 45 s.
     name: Build Hets Desktop
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
       # The desktop version needs additional GUI packages usually not installed.
+      # ~ 13 s
       - name: Update packages
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
@@ -284,6 +292,7 @@ jobs:
         if: startsWith(env.FAKE_URL, 'http')
         run: wget --progress=dot -O ${{ runner.temp }}/${{ env.HETS_ARC }} ${{ env.FAKE_URL }}/hets-desktop.tzst
 
+      # ~ 18 min
       - name: Build
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
@@ -296,6 +305,7 @@ jobs:
           # gives us a proper exit code, too.
           ./hets -V
 
+      # ~ 17 s
       - name: Upload Hets build dir
         uses: actions/upload-artifact@v2
         with:
@@ -339,11 +349,10 @@ jobs:
           name: hets-server
           path: ${{ runner.temp }}
 
-      - name: Extract artifact
+      - name: Extract Hets
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/ksh93
-          ln -s hets_server.bin hets || true
 
       - name: Fetch stack cache
         uses: actions/cache@v2
@@ -366,7 +375,7 @@ jobs:
         run: |
           unset POSIXLY_CORRECT
           make restack
-          HETS_MAGIC ${{ github.workspace }}/magic/hets.magic  make check
+          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic  make check
 
   job_3b:
     name: Test Hets-Lib
@@ -380,14 +389,16 @@ jobs:
           path: ${{ runner.temp }}
 
       # stack is not needed
-      - name: Extract artifact
+      - name: Extract Hets
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/ksh93
-          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
 
+      # Just setting env vars is not sufficient. So install ;-)
       - name: Install OWL tools
-        run: make install-owl-tools
+        run: |
+          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
+          make install-owl-tools
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
@@ -414,14 +425,10 @@ jobs:
           path: ${{ runner.temp }}
 
       # stack is not needed
-      - name: Extract artifact
+      - name: Extract Hets
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/
-          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
-
-      - name: Install Hets Server
-        run: make install-hets_server
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
@@ -436,7 +443,7 @@ jobs:
       - name: Test
         run: |
           sudo systemctl stop postgresql || true
-          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${PREFIX}/bin:${PATH} ./test/hets-lib-database-check.sh -a 'PostgreSQL'
+          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic ./test/hets-lib-database-check.sh -a 'PostgreSQL'
 
   job_3d:
     # Same as 3c but for SQlite
@@ -451,15 +458,10 @@ jobs:
           path: ${{ runner.temp }}
 
       # stack is not needed
-      - name: Extract artifact
+      - name: Extract Hets
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/
-          ln -s hets_server.bin hets || true
-          sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
-
-      - name: Install Hets Server
-        run: make install-hets_server
 
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
@@ -472,4 +474,4 @@ jobs:
           ls -al
 
       - name: Test
-        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${PREFIX}/bin:${PATH} ./test/hets-lib-database-check.sh -a 'SQLite'
+        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic ./test/hets-lib-database-check.sh -a 'SQLite'
