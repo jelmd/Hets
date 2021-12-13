@@ -256,7 +256,7 @@ jobs:
           # make it uniform
           cp stack.yaml stack.yaml.orig
           # Update stack info
-          make stack
+          make restack
           make hets.bin
           # 250+ MB for .git is by far too much ...
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
@@ -283,6 +283,13 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
+      - name: Update packages
+        run: |
+          for F in /etc/apt/sources.list.d/*.list ; do printf "\n########## $F ##########\n"; cat $F ; done
+          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install spass darwin vampire
+
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
@@ -295,19 +302,14 @@ jobs:
           sudo cp -p ksh93 /bin/ksh93
           ln -s hets_server.bin hets || true
 
-      # Add missing packages. Since it is not a minimal server image, almost
-      # everything is already installed. But this makes update time longer: 13s
-      - name: Update packages
-        run: |
-          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install ${{ env.MISSING_PKGS }}
-
       - name: Fetch stack cache
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
+
+      - name: Checkout Hets-lib
+        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
