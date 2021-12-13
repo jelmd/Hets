@@ -1,4 +1,4 @@
-# NOTE: Ressourcs for public repos: see Account/Org Settings | Billing & plans:
+# NOTE: Resources for public repos: see Account/Org Settings | Billing & plans:
 #	- 2000 min/month (== 16 US$)
 #		- linux devisor: 1
 #		- macosx devisor: 10 => 200 min/month
@@ -14,6 +14,24 @@
 #	- API requests: 1000 req/h
 #	- matrix generated jobs/workflow: max. 256
 #	- max. workflows: 500 every 10 s
+#
+# Also note, that the jobs contain a lot of code duplication and thus one need
+# to take care to keep all in sync (GHA provides no proper alternatives). So
+# the only way to reduce the bloat and make stuff consistent is to move it to
+# the utils/gha-helper.sh script.
+#
+# Last but not least take care wrt. conditional expressions - very bogus and
+# often do not, what the actual intention is (e.g. formats an expr as text and
+# compares the literal with null|'' for the result, or tags a logical not ('!')
+# as syntax error etc.). So one should really test this stuff before using it.
+ 
+# NOTE wrt. stack:
+# Stack is not POSIX compatible wrt. passing arguments to called utils. So at
+# least when making/updateing stack, make sure POSIXLY_CORRECT is unset.
+
+# Rule of thumb:
+# Download/Upload speed seen: ~ 10..30 MB/s for AWS ("intern"),
+#                                    5 MB/s extern (IKS).
 
 # Build hets and run related tests for CI
 name: CI-Tests
@@ -30,15 +48,16 @@ env:
   PREFIX: /var/tmp/hets/hets-install
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
   # URL to use to skip hets builds and download the artifacts hets-server.tzst
-  # and hets-desktop.tzst instead. Save a lot of time when troubleshooting tests
+  # + hets-desktop.tzst instead. Saves a lot of time when troubleshooting tests.
   FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
   # If set to true, upload initial stack and hets src tree as stack0 and hets0
-  # as well as the final stack (stack1) as well to the artifact storage.
+  # as well as the final stack (stack1) to the artifact storage, too. Note that
+  # the post build Hets dir gets always uploaded to the artifact repo and thus
+  # can be downloaded via the related GHA pages of the workflow for one day.
   DEBUG: 'false'
 
 # When to trigger this workflow
 on:
-  # on push or pull requests for the given branches
   push:
     branches:
       - gha
@@ -52,19 +71,25 @@ concurrency:
   group: pr-build-and-test-${{ github.ref_head }}
   cancel-in-progress: true
 
-# A workflow run is made up of one or more jobs that can run seq. or in parallel
-# but always in a separate, fresh container. So each job needs to fetch the work
+# A workflow is made up of one or more jobs that can run seq. or in parallel but
+# always in a separate, fresh container. So each job needs to fetch the work
 # from previous jobs and checkout the repo again, if needed.
-#
-# Re-usable workflows? Forget this non-sense. Write a script and put it in there
-# than you have re-usable stuff which can be run on any step, several times ...
 jobs:
+
+
+  ################################ PREPARE ###################################
+  # This workflow uses 'stack' to build Hets and related tests. To avoid
+  # building it agaian and again within each job, we build it once, upload the
+  # build named stack to the github cache store and fetch it on demand for
+  # each job.
+  ############################################################################
   job_1:
+    # Takes ~ 15..20 min | 30 s.
     name: Build Stack
     runs-on: ubuntu-18.04
-    # If the job takes longer than 30 min, something is going wrong. E.g. stack
-    # sometimes goes in an endless loop. We prefer to kill instead of wasting
-    # valueable credits (2000 min/month).
+    # If the job takes longer than 30 min, something is going wrong and we want
+    # GHA to kill the job to save build time. E.g. stack sometimes goes in an
+    # endless loop if compilation fails.
     timeout-minutes: 30
     steps:
       # Info about the running environment makes troubleshooting easier. < 1s
@@ -82,10 +107,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # If stack.yaml has not been changed, we can try to use a cached copy,
-      # which saves ~15..20 min. On hit (~ 495 MiB) it takes ~ 25s
+      # If stack.yaml has not been changed, we use the cached copy if available,
+      # which saves ~15..20 min. On hit (~ 495 MiB) it takes ~ 25 ± 5s.
       # NOTE: There is no way to remove or update a cached file. So one needs
-      # to modify stack.yaml to create a new cache entry =8-( .
+      # to modify stack.yaml to create a new cache entry =8-( . The action/cache
+      # automagically uploads the stack before job completion, _if there is no_
+      # copy cached yet.
       - name: Fetch stack cache
         id: stack_cache
         uses: actions/cache@v2
@@ -93,8 +120,8 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
-      # Add missing packages. Since it is not a minimal server image, almost
-      # everything is already installed. But this makes update time longer: 13s
+      # Install missing packages. Since it is not a minimal server image, almost
+      # everything is already installed. Usually GUI stuff is missing, only.
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
@@ -107,9 +134,8 @@ jobs:
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           ${{ env.GHAH }} -c showEnv
-          # bogus stack
-          unsetenv POSIXLY_CORRECT
           cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
+          unsetenv POSIXLY_CORRECT
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
           ls -al ${{ github.workspace }}
@@ -120,7 +146,13 @@ jobs:
           stack --version
           stack exec -- ghc -V
 
+
+  ################################# BUILD ####################################
+  # Build Hets desktop and server version in parallel using the cached stack
+  # and preserve the build dir for later testing.
+  ############################################################################
   job_2a:
+    # Takes ~ 20 min | 45 s.
     name: Build Hets Server
     runs-on: ubuntu-18.04
     needs: job_1
@@ -129,16 +161,9 @@ jobs:
         if: startsWith(env.FAKE_URL, 'http') == false
         uses: actions/checkout@v2
 
-#      # Add missing packages, but leave man as is (saves ~ 15s).
-#      - name: Update packages
-#        run: |
-#          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
-#          sudo rm -f /var/lib/man-db/auto-update
-#          sudo apt-get install ${{ env.MISSING_GUI_PKGS }}
-
-        # Update stack - it blindly links in all extra-deps, no matter, what
-        # flags.Hets say (or what is really needed) =8-(
-        # We need to do it here, otherwise the hash changes and stack ...
+        # Stack blindly links in all extra-deps, no matter, what flags.Hets say
+        # (or what is really needed) =8-( - so need to strip off the GUI stuff.
+        # We need to do it here, otherwise the hash changes => no cached stack.
       - name: Adjust stack.yaml
         if: startsWith(env.FAKE_URL, 'http') == false
         run: sed -i.orig -e '/gtk-/ d' -e '/gtkglade/ s/true/false/' stack.yaml
@@ -150,11 +175,33 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
 
-      - name: cache0
+      - name: Archive cached stack
         if: env.DEBUG == 'true'
         run: |
-          /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
+          tar -H posix -I zstd -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
+          tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
+
+      # ~ 496 MiB
+      - name: Upload cached stack
+        if: env.DEBUG == 'true'
+        uses: actions/upload-artifact@v2
+        with:
+          name: stack0
+          path: ${{ runner.temp }}/stack0.tzst
+          retention-days: 1
+
+      # ~ 9 MiB
+      - name: Upload Hets source dir
+        if: env.DEBUG == 'true'
+        uses: actions/upload-artifact@v2
+        with:
+          name: hets0
+          path: ${{ runner.temp }}/hets0.tzst
+          retention-days: 1
+
+      - name: Archive post build stack
+        if: env.DEBUG == 'true'
+        run: /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
 
       - name: Environment
         if: startsWith(env.FAKE_URL, 'http') == false
@@ -172,45 +219,25 @@ jobs:
       - name: Build
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
-          make stack
+          unsetenv POSIXLY_CORRECT
+          make restack
           make hets_server.bin || true
           ln -s hets_server.bin hets
           cp -pL /bin/ksh93 .
-          # 258+ MiB for .git is by far too much ...
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           # gives us a proper exit code, too.
           ./hets -V
 
-      - name: cache1
-        if: env.DEBUG == 'true'
-        run: /bin/tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
-
-      # Actually we need it for tests, only. So 1h retention would be enough.
-      # ~ 206 MiB which saves us ~ 25 min.
-      - name: Upload Artifact
+      # ~ 125 MiB , 14s
+      - name: Upload Hets build dir
         uses: actions/upload-artifact@v2
         with:
           name: hets-server
           path: ${{ runner.temp }}/${{ env.HETS_ARC }}
           retention-days: 1
 
-      - name: Upload Artifact2
-        if: env.DEBUG == 'true'
-        uses: actions/upload-artifact@v2
-        with:
-          name: stack0
-          path: ${{ runner.temp }}/stack0.tzst
-          retention-days: 1
-
-      - name: Upload Artifact3
-        if: env.DEBUG == 'true'
-        uses: actions/upload-artifact@v2
-        with:
-          name: hets0
-          path: ${{ runner.temp }}/hets0.tzst
-          retention-days: 1
-
-      - name: Upload Artifact4
+      # ~ 496 MiB
+      - name: Upload post build stack
         if: env.DEBUG == 'true'
         uses: actions/upload-artifact@v2
         with:
@@ -219,14 +246,13 @@ jobs:
           retention-days: 1
 
 
-  # Unfortunately there are no parameter driven jobs or job templates. Should
-  # we use GA helper script instead?
   job_2b:
+    # Takes ~ 20 min | 45 s.
     name: Build Hets Desktop
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
-      # Add missing packages, but leave man as is (saves ~ 15s).
+      # The desktop version needs additional GUI packages usually not installed.
       - name: Update packages
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
@@ -261,48 +287,48 @@ jobs:
       - name: Build
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
-          # make it uniform
           cp stack.yaml stack.yaml.orig
-          # Update stack info
+          unsetenv POSIXLY_CORRECT
           make restack
           make hets.bin
-          # 250+ MB for .git is by far too much ...
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           cp -pL /bin/ksh93 .
           # gives us a proper exit code, too.
           ./hets -V
 
-      # Actually we need it for tests, only. So 1h retention would be enough.
-      # ~ 206 MiB which saves us ~ 25 min.
-      - name: Upload Artifact
+      - name: Upload Hets build dir
         uses: actions/upload-artifact@v2
         with:
           name: hets-desktop
           path: ${{ runner.temp }}/${{ env.HETS_ARC }}
           retention-days: 1
 
-  ###################### TESTING ######################
+
+  ############################### TESTING ####################################
   # We prefer the server build because it is more or less a subset of the
   # desktop version. So if server binary works, desktop binary should work
   # as well. This also frees us from installing missing GUI deps.
+  ############################################################################
   job_3a:
-    # Runs/compiles/executes? haskell related tests in several subdirs.
-    name: Test subdirs
+    # Takes about 10 min.
+    name: Test components
+    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
       - name: Update packages
         run: |
-          #for F in /etc/apt/sources.list.d/*.list ; do printf "\n########## $F ##########\n"; cat $F ; done
+          # The less package repos, the less time it takes to update.
           sudo rm -f /etc/apt/sources.list.d/{ondrej-ubuntu-php,ubuntu-toolchain-r-ubuntu-test}-bionic.list
           printf "deb http://ppa.launchpad.net/hets/hets/ubuntu `lsb_release -sc`  main\n" | sudo tee /etc/apt/sources.list.d/hets.list
           sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3FF4B01F2A2314D8
+          for F in /etc/apt/sources.list.d/*.list ; do printf "\n################## $F ##################\n"; cat $F ; done
           sudo apt-get update
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install spass darwin vampire
 
-      - name: Download artifact
+      - name: Download Hets build dir
         uses: actions/download-artifact@v2
         with:
           name: hets-server
@@ -320,6 +346,7 @@ jobs:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
 
+      # Takes ~ 3s  -  not worth to optimze.
       - name: Checkout Hets-lib
         run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
 
@@ -332,17 +359,16 @@ jobs:
 
       - name: Test
         run: |
+          unsetenv POSIXLY_CORRECT
           make restack
           make check
 
   job_3b:
-    # Calls hets for several files in Hets-Lib. So the binary is needed, only.
     name: Test Hets-Lib
     runs-on: ubuntu-18.04
     needs: job_2a
-    if: 0
     steps:
-      - name: Download artifact
+      - name: Download Hets build dir
         uses: actions/download-artifact@v2
         with:
           name: hets-server
@@ -373,13 +399,11 @@ jobs:
         run: HETS_OWL_TOOLS=${{ env.PREFIX }}/lib/hets/hets-owl-tools ./test/hets-lib-check.sh all
 
   job_3c:
-    # Calls hets for several files in Hets-Lib. So the binary is needed, only.
     name: Test PostgreSQL DB
-    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
-      - name: Download artifact
+      - name: Download Hets build dir
         uses: actions/download-artifact@v2
         with:
           name: hets-server
@@ -414,11 +438,10 @@ jobs:
   job_3d:
     # Same as 3c but for SQlite
     name: Test SQLite DB
-    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
-      - name: Download artifact
+      - name: Download Hets build dir
         uses: actions/download-artifact@v2
         with:
           name: hets-server
