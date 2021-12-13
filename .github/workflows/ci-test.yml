@@ -27,7 +27,9 @@
 # often do not, what the actual intention is (e.g. GHA formats an expr as text
 # if it encounters a '${{' and compares this literal with null|'' to decide
 # between true or false. Other wiered stuff: tags a logical not ('!') as syntax
-# error, etc.). So one should really test this stuff before using it.
+# error, etc.). So one should really test this stuff before using it. Testing
+# should be done in the developers forked repository to avoid hitting the
+# the resource limits of the Hets repo.
  
 # NOTE wrt. stack:
 # Stack is not POSIX compatible wrt. passing arguments to called utils. So at
@@ -441,7 +443,7 @@ jobs:
         run: |
           sudo systemctl stop postgresql || true
           ln -s hets hets-server
-          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${{ env.PATH }} ./test/hets-lib-database-check.sh -a 'PostgreSQL'
+          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${PATH} ./test/hets-lib-database-check.sh -a 'PostgreSQL'
 
   job_3d:
     # Same as 3c but for SQlite
@@ -470,4 +472,4 @@ jobs:
           ls -al
 
       - name: Test
-        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${{ env.PATH }} ./test/hets-lib-database-check.sh -a 'SQLite'
+        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${PATH} ./test/hets-lib-database-check.sh -a 'SQLite'
