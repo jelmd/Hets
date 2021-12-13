@@ -320,11 +320,12 @@ jobs:
   # as well. This also frees us from installing missing GUI deps.
   ############################################################################
   job_3a:
-    # Takes about 10 min.
+    # Takes about 12 min.
     name: Test components
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
+      # ~ 16 s
       - name: Update packages
         run: |
           # The less package repos, the less time it takes to update.
@@ -340,7 +341,6 @@ jobs:
       # Unfortunately utils/checkChangedSourceGit.sh uses 'git diff' - so need
       # to fetch the dropped .git/ bloat.
       - name: Checkout
-        if: startsWith(env.FAKE_URL, 'http') == false
         uses: actions/checkout@v2
 
       - name: Download Hets build dir
@@ -371,6 +371,7 @@ jobs:
           stack exec -- ghc -V
           ls -al
 
+      # ~ 10 min
       - name: Test
         run: |
           unset POSIXLY_CORRECT
@@ -394,7 +395,7 @@ jobs:
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/ksh93
 
-      # Just setting env vars is not sufficient. So install ;-)
+      # Just setting env vars is not sufficient. So install ;-). ~ 11 s
       - name: Install OWL tools
         run: |
           sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
@@ -406,8 +407,6 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
-          stack --version
-          stack exec -- ghc -V
           ls -al
 
       - name: Test
@@ -436,14 +435,13 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
-          stack --version
-          stack exec -- ghc -V
           ls -al
 
       - name: Test
         run: |
           sudo systemctl stop postgresql || true
-          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic ./test/hets-lib-database-check.sh -a 'PostgreSQL'
+          ln -s hets hets-server
+          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${{ env.PATH }} ./test/hets-lib-database-check.sh -a 'PostgreSQL'
 
   job_3d:
     # Same as 3c but for SQlite
@@ -469,9 +467,7 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
-          stack --version
-          stack exec -- ghc -V
           ls -al
 
       - name: Test
-        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic ./test/hets-lib-database-check.sh -a 'SQLite'
+        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${{ env.PATH }} ./test/hets-lib-database-check.sh -a 'SQLite'
