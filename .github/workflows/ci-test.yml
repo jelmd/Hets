@@ -296,6 +296,7 @@ jobs:
           #for F in /etc/apt/sources.list.d/*.list ; do printf "\n########## $F ##########\n"; cat $F ; done
           sudo rm -f /etc/apt/sources.list.d/{ondrej-ubuntu-php,ubuntu-toolchain-r-ubuntu-test}-bionic.list
           printf "deb http://ppa.launchpad.net/hets/hets/ubuntu `lsb_release -sc`  main\n" | sudo tee /etc/apt/sources.list.d/hets.list
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3FF4B01F2A2314D8
           sudo apt-get update
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
