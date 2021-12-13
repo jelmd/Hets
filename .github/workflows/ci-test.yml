@@ -49,7 +49,7 @@ env:
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
   # URL to use to skip hets builds and download the artifacts hets-server.tzst
   # + hets-desktop.tzst instead. Saves a lot of time when troubleshooting tests.
-  FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
+  #FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
   # If set to true, upload initial stack and hets src tree as stack0 and hets0
   # as well as the final stack (stack1) to the artifact storage, too. Note that
   # the post build Hets dir gets always uploaded to the artifact repo and thus
@@ -312,7 +312,6 @@ jobs:
   job_3a:
     # Takes about 10 min.
     name: Test components
-    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -327,6 +326,12 @@ jobs:
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install spass darwin vampire
+
+      # Unfortunately utils/checkChangedSourceGit.sh uses 'git diff' - so need
+      # to fetch the dropped .git/ bloat.
+      - name: Checkout
+        if: startsWith(env.FAKE_URL, 'http') == false
+        uses: actions/checkout@v2
 
       - name: Download Hets build dir
         uses: actions/download-artifact@v2
@@ -361,7 +366,7 @@ jobs:
         run: |
           unsetenv POSIXLY_CORRECT
           make restack
-          make check
+          HETS_MAGIC ${{ github.workspace }}/magic/hets.magic  make check
 
   job_3b:
     name: Test Hets-Lib
@@ -379,7 +384,6 @@ jobs:
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/ksh93
-          ln -s hets_server.bin hets || true
           sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
 
       - name: Install OWL tools
@@ -414,7 +418,6 @@ jobs:
         run: |
           tar -H posix -I zstd -xf ${{ runner.temp }}/${{ env.HETS_ARC }}
           sudo cp -p ksh93 /bin/
-          ln -s hets_server.bin hets || true
           sed -i -e '/^STACK / s/^.*/STACK :=/' var.mk
 
       - name: Install Hets Server
