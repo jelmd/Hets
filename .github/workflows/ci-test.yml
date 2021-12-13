@@ -135,7 +135,7 @@ jobs:
         run: |
           ${{ env.GHAH }} -c showEnv
           cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
-          unsetenv POSIXLY_CORRECT
+          unset POSIXLY_CORRECT
           make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
           ls -al ${{ github.workspace }}
@@ -219,7 +219,7 @@ jobs:
       - name: Build
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
-          unsetenv POSIXLY_CORRECT
+          unset POSIXLY_CORRECT
           make restack
           make hets_server.bin || true
           ln -s hets_server.bin hets
@@ -288,7 +288,7 @@ jobs:
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
           cp stack.yaml stack.yaml.orig
-          unsetenv POSIXLY_CORRECT
+          unset POSIXLY_CORRECT
           make restack
           make hets.bin
           /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
@@ -364,7 +364,7 @@ jobs:
 
       - name: Test
         run: |
-          unsetenv POSIXLY_CORRECT
+          unset POSIXLY_CORRECT
           make restack
           HETS_MAGIC ${{ github.workspace }}/magic/hets.magic  make check
 
