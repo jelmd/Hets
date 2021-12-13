@@ -65,7 +65,7 @@ env:
 on:
   push:
     branches:
-      - main
+      - gha
   pull_request:
     branches:
       - gha
