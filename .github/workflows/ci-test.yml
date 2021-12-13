@@ -54,6 +54,8 @@ env:
   HETS_ARC: hets.tzst
   PREFIX: /var/tmp/hets/hets-install
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
+  HETS_LIB_REPO: https://github.com/spechub/Hets-lib.git
+  HETS_PPA: http://ppa.launchpad.net/hets/hets/ubuntu
   # URL to use to skip hets builds and download the artifacts hets-server.tzst
   # + hets-desktop.tzst instead. Saves a lot of time when troubleshooting tests.
   FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
@@ -133,7 +135,8 @@ jobs:
       - name: Update packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
-          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          echo 'man-db man-db/auto-update boolean false' | \
+              sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ksh93 || sudo apt-get install ksh
           sudo apt-get install ${{ env.MISSING_GUI_PKGS }}
@@ -145,7 +148,9 @@ jobs:
           ${{ env.GHAH }} -c showEnv
           cp -pL `which ksh93` ${{ env.STACK_ROOT }}/
           unset POSIXLY_CORRECT
-          make stack && rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc || mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
+          make stack && \
+              rm -rf ${{ env.STACK_ROOT }}/programs/x86_64-linux/*/share/doc ||\
+              mv ${{ env.STACK_ROOT }} ${{ env.STACK_ROOT }}.fail
           rm -f ${{ env.STACK_ROOT }}/programs/x86_64-linux/*.tar.xz
           ls -al ${{ github.workspace }}
           ls -al ${{ env.STACK_ROOT }} && du -sh ${{ env.STACK_ROOT }}
@@ -187,8 +192,12 @@ jobs:
       - name: Archive cached stack
         if: env.DEBUG == 'true'
         run: |
-          tar -H posix -I zstd -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
-          tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=lib --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/hets0.tzst -C ${{ github.workspace }} .
+          tar -H posix -I zstd \
+              -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
+          tar -H posix -I zstd \
+              --exclude=.git --exclude=OcamlTools \
+              --exclude=hets-mmt-standalone.jar --exclude=Termination \
+              -cplf ${{ runner.temp }}/hets0.tzst .
 
       # ~ 496 MiB, 20 s
       - name: Upload cached stack
@@ -219,7 +228,9 @@ jobs:
 
       - name: Fake Build
         if: startsWith(env.FAKE_URL, 'http')
-        run: wget --progress=dot -O ${{ runner.temp }}/${{ env.HETS_ARC }} ${{ env.FAKE_URL }}/hets-server.tzst
+        run: |
+          wget --progress=dot -O ${{ runner.temp }}/${{ env.HETS_ARC }} \
+              ${{ env.FAKE_URL }}/hets-server.tzst
 
       - name: Build
         if: startsWith(env.FAKE_URL, 'http') == false
@@ -229,7 +240,10 @@ jobs:
           make hets_server.bin || true
           ln -s hets_server.bin hets
           cp -pL /bin/ksh93 .
-          tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
+          tar -H posix -I zstd \
+              --exclude=.git --exclude=OcamlTools \
+              --exclude=hets-mmt-standalone.jar --exclude=Termination \
+              -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           # gives us a proper exit code, too.
           ./hets -V
 
@@ -243,7 +257,9 @@ jobs:
 
       - name: Archive post build stack
         if: env.DEBUG == 'true'
-        run: tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst -C ${{ env.STACK_ROOT }} .
+        run: |
+          tar -H posix -I zstd -cplf ${{ runner.temp }}/stack1.tzst \
+              -C ${{ env.STACK_ROOT }} .
 
       # ~ 496 MiB, 20 s
       - name: Upload post build stack
@@ -266,7 +282,8 @@ jobs:
       - name: Update packages
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
-          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          echo 'man-db man-db/auto-update boolean false' | \
+              sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ${{ env.MISSING_GUI_PKGS }}
 
@@ -292,7 +309,9 @@ jobs:
 
       - name: Fake Build
         if: startsWith(env.FAKE_URL, 'http')
-        run: wget --progress=dot -O ${{ runner.temp }}/${{ env.HETS_ARC }} ${{ env.FAKE_URL }}/hets-desktop.tzst
+        run: |
+          wget --progress=dot -O ${{ runner.temp }}/${{ env.HETS_ARC }} \
+              ${{ env.FAKE_URL }}/hets-desktop.tzst
 
       # ~ 18 min
       - name: Build
@@ -302,8 +321,11 @@ jobs:
           unset POSIXLY_CORRECT
           make restack
           make hets.bin
-          /bin/tar -H posix -I zstd --exclude=.git --exclude=OcamlTools --exclude=hets-mmt-standalone.jar --exclude=Termination -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           cp -pL /bin/ksh93 .
+          tar -H posix -I zstd \
+              --exclude=.git --exclude=OcamlTools \
+              --exclude=hets-mmt-standalone.jar --exclude=Termination \
+              -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           # gives us a proper exit code, too.
           ./hets -V
 
@@ -332,13 +354,19 @@ jobs:
         run: |
           # The less package repos, the less time it takes to update.
           sudo rm -f /etc/apt/sources.list.d/{ondrej-ubuntu-php,ubuntu-toolchain-r-ubuntu-test}-bionic.list
-          printf "deb http://ppa.launchpad.net/hets/hets/ubuntu `lsb_release -sc`  main\n" | sudo tee /etc/apt/sources.list.d/hets.list
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3FF4B01F2A2314D8
-          for F in /etc/apt/sources.list.d/*.list ; do printf "\n################## $F ##################\n"; cat $F ; done
+          printf "deb ${HETS_PPA} `lsb_release -sc`  main\n" | \
+              sudo tee /etc/apt/sources.list.d/hets.list
+          sudo apt-key adv --keyserver keyserver.ubuntu.com \
+              --recv-keys 3FF4B01F2A2314D8
+          for F in /etc/apt/sources.list.d/*.list ; do
+              printf "\n################## $F ##################\n"
+              cat $F
+          done
           sudo apt-get update
-          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
+          echo 'man-db man-db/auto-update boolean false' | \
+              sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install spass darwin vampire
+          sudo apt-get install spass darwin vampire texlive-latex-base
 
       # Unfortunately utils/checkChangedSourceGit.sh uses 'git diff' - so need
       # to fetch the dropped .git/ bloat.
@@ -364,7 +392,7 @@ jobs:
 
       # Takes ~ 3s  -  not worth to optimze.
       - name: Checkout Hets-lib
-        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+        run: git clone --depth=1 ${{ env.HETS_LIB_REPO }} ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
@@ -404,7 +432,7 @@ jobs:
           make install-owl-tools
 
       - name: Checkout Hets-lib
-        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+        run: git clone --depth=1 ${{ env.HETS_LIB_REPO }} ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
@@ -412,7 +440,9 @@ jobs:
           ls -al
 
       - name: Test
-        run: HETS_OWL_TOOLS=${{ env.PREFIX }}/lib/hets/hets-owl-tools ./test/hets-lib-check.sh all
+        run: |
+          HETS_OWL_TOOLS=${{ env.PREFIX }}/lib/hets/hets-owl-tools \
+          ./test/hets-lib-check.sh all
 
   job_3c:
     name: Test PostgreSQL DB
@@ -432,7 +462,7 @@ jobs:
           sudo cp -p ksh93 /bin/
 
       - name: Checkout Hets-lib
-        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+        run: git clone --depth=1 ${{ env.HETS_LIB_REPO }} ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
@@ -443,7 +473,9 @@ jobs:
         run: |
           sudo systemctl stop postgresql || true
           ln -s hets hets-server
-          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${PATH} ./test/hets-lib-database-check.sh -a 'PostgreSQL'
+          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic \
+          PATH=${{ github.workspace }}:${PATH} \
+          ./test/hets-lib-database-check.sh -a 'PostgreSQL'
 
   job_3d:
     # Same as 3c but for SQlite
@@ -464,7 +496,7 @@ jobs:
           sudo cp -p ksh93 /bin/
 
       - name: Checkout Hets-lib
-        run: git clone --depth=1 https://github.com/spechub/Hets-lib.git ${{ env.HETS_LIB }}
+        run: git clone --depth=1 ${{ env.HETS_LIB_REPO }} ${{ env.HETS_LIB }}
 
       - name: Environment
         run: |
@@ -472,4 +504,7 @@ jobs:
           ls -al
 
       - name: Test
-        run: HETS_MAGIC=${{ github.workspace }}/magic/hets.magic PATH=${{ github.workspace }}:${PATH} ./test/hets-lib-database-check.sh -a 'SQLite'
+        run: |
+          HETS_MAGIC=${{ github.workspace }}/magic/hets.magic \
+          PATH=${{ github.workspace }}:${PATH} \
+          ./test/hets-lib-database-check.sh -a 'SQLite'
