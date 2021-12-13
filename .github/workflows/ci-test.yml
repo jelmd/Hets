@@ -25,13 +25,13 @@ env:
   # /dev/sd*.
   STACK_ROOT: /var/tmp/hets/stack
   GHAH: utils/gha-helper.sh
-  MISSING_PKGS: 'libpango1.0-dev libgtk2.0-dev'
+  MISSING_GUI_PKGS: 'libpango1.0-dev libgtk2.0-dev'
   HETS_ARC: hets.tzst
   PREFIX: /var/tmp/hets/hets-install
   HETS_LIB: /var/tmp/hets/hets-install/lib/hets/hets-lib
   # URL to use to skip hets builds and download the artifacts hets-server.tzst
   # and hets-desktop.tzst instead. Save a lot of time when troubleshooting tests
-  #FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
+  FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
 
 # When to trigger this workflow
 on:
@@ -98,7 +98,7 @@ jobs:
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install ksh93 || sudo apt-get install ksh
-          sudo apt-get install ${{ env.MISSING_PKGS }}
+          sudo apt-get install ${{ env.MISSING_GUI_PKGS }}
 
       - name: Build
         if: steps.stack_cache.outputs.cache-hit != 'true'
@@ -131,7 +131,7 @@ jobs:
 #        run: |
 #          echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
 #          sudo rm -f /var/lib/man-db/auto-update
-#          sudo apt-get install ${{ env.MISSING_PKGS }}
+#          sudo apt-get install ${{ env.MISSING_GUI_PKGS }}
 
         # Update stack - it blindly links in all extra-deps, no matter, what
         # flags.Hets say (or what is really needed) =8-(
@@ -224,7 +224,7 @@ jobs:
         run: |
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install ${{ env.MISSING_PKGS }}
+          sudo apt-get install ${{ env.MISSING_GUI_PKGS }}
 
       - name: Checkout
         if: startsWith(env.FAKE_URL, 'http') == false
