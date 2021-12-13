@@ -285,7 +285,11 @@ jobs:
     steps:
       - name: Update packages
         run: |
-          for F in /etc/apt/sources.list.d/*.list ; do printf "\n########## $F ##########\n"; cat $F ; done
+          #for F in /etc/apt/sources.list.d/*.list ; do printf "\n########## $F ##########\n"; cat $F ; done
+          rm -f /etc/apt/sources.list.d/{ondrej-ubuntu-php,ubuntu-toolchain-r-ubuntu-test}-bionic.list
+          printf "deb http://ppa.launchpad.net/hets/hets/ubuntu `lsbrelease -sc`  main\n" >/tmp/hets.list
+          sudo cp /tmp/hets.list /etc/apt/sources.list.d/
+          sudo apt-get update
           echo 'man-db man-db/auto-update boolean false' | sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install spass darwin vampire
