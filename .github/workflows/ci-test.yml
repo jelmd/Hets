@@ -570,10 +570,11 @@ jobs:
           rmdir docs || true
 
       - name: Upload docs
+        continue-on-error: true
         env:
           THEO_API_KEY: $${{ secrets.THEO_PUSH_SECRET }}
         run: |
-          tar cplzf ${{ runner.temp }}/docs.tgz
+          tar cplzf ${{ runner.temp }}/docs.tgz docs
           curl -q --no-remote-time -F "job=${{ github.run_number }}.0" \
               -F 'button=1' -F "upfile=@${{ runner.temp }}/docs.tgz" \
               -F 'expires=${THEO_API_KEY}' \
