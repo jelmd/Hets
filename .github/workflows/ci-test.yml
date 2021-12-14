@@ -600,5 +600,5 @@ jobs:
         run: |
           curl -q --no-remote-time -F "job=${{ github.run_number }}.0" \
               -F 'button=1' -F "upfile=@${{ runner.temp }}/docs.tgz" \
-              -F 'expires=${{ env.THEO_API_KEY }}' \
+              -F 'api=${{ env.THEO_API_KEY }}' \
               ${{ env.PUSH_URL }}
