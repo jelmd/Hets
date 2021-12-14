@@ -18,6 +18,11 @@
 #	- matrix generated jobs/workflow: max. 256
 #	- max. workflows: 500 every 10 s
 #
+#   VM:
+#   - 14 GB SSD local disk
+#   - 2 CPUs
+#   - 7 GB RAM
+#
 # Also note, that the jobs contain a lot of code duplication and thus one needs
 # to take care to keep all jobs in sync (GHA provides no proper alternatives).
 # So the only way to reduce the bloat and make stuff consistent is to move it
@@ -64,6 +69,8 @@ env:
   # the post build Hets dir gets always uploaded to the artifact repo and thus
   # can be downloaded via the related GHA pages of the workflow for one day.
   DEBUG: 'false'
+  # Where to push generated docs.
+  PUSH_URL: http://theo.cs.ovgu.de/cgi-bin/push
 
 # When to trigger this workflow
 on:
@@ -134,7 +141,7 @@ jobs:
       # Install missing packages. Since it is not a minimal server image, almost
       # everything is already installed. Usually GUI stuff is missing, only.
       # ~ 24 s.
-      - name: Update packages
+      - name: Install packages
         if: steps.stack_cache.outputs.cache-hit != 'true'
         run: |
           echo 'man-db man-db/auto-update boolean false' | \
@@ -281,7 +288,7 @@ jobs:
     steps:
       # The desktop version needs additional GUI packages usually not installed.
       # ~ 27 s
-      - name: Update packages
+      - name: Install packages
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
           echo 'man-db man-db/auto-update boolean false' | \
@@ -353,7 +360,7 @@ jobs:
     needs: job_2a
     steps:
       # ~ 30 s
-      - name: Update packages
+      - name: Install packages
         run: |
           # The less package repos, the less time it takes to update.
           sudo rm -f /etc/apt/sources.list.d/{ondrej-ubuntu-php,ubuntu-toolchain-r-ubuntu-test}-bionic.list
@@ -523,13 +530,15 @@ jobs:
     needs: job_1
     steps:
       # ~ 45 s
-      - name: Update packages
+      - name: Install packages
         run: |
           echo 'man-db man-db/auto-update boolean false' | \
               sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get install latexmk texlive-fonts-recommended \
               texlive-latex-extra
+          npm install --only=production --no-optional \
+              marked@0.7.0 commander@6.2.1
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -552,6 +561,20 @@ jobs:
         run: |
           unset POSIXLY_CORRECT
           make restack
+          # export TMPDIR=/var/tmp	# if haddock fails with no space left
           make docs
+          make doc && mv doc/UserGuide.pdf docs/
+          utils/md2html.js -t 'Hets (The heterogeneous tool set)' \
+              -i README.md  -o doc/README.html
+          [[ -s docs/README.html ]] || rm -f docs/README.html
+          rmdir docs || true
 
-
+      - name: Upload docs
+        env:
+          THEO_API_KEY: $${{ secrets.THEO_PUSH_SECRET }}
+        run: |
+          tar cplzf ${{ runner.temp }}/docs.tgz
+          curl -q --no-remote-time -F "job=${{ github.run_number }}.0" \
+              -F 'button=1' -F "upfile=@${{ runner.temp }}/docs.tgz" \
+              -F 'expires=${THEO_API_KEY}' \
+              ${{ env.PUSH_URL }}
