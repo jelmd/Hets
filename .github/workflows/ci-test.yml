@@ -520,6 +520,14 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
+      # ~ 30 s
+      - name: Update packages
+        run: |
+          echo 'man-db man-db/auto-update boolean false' | \
+              sudo debconf-set-selections
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get install latexmk texlive-fonts-recommended
+
       - name: Checkout
         uses: actions/checkout@v2
 
