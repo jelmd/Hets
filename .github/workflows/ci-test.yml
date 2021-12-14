@@ -529,16 +529,15 @@ jobs:
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
-      # ~ 45 s
-      - name: Download Hets docs
+      - name: Fake Build
         id: download
         if: startsWith(env.FAKE_URL, 'http')
         continue-on-error: true
-        uses: actions/download-artifact@v2
-        with:
-          name: docs
-          path: ${{ runner.temp }}/docs.tgz
+        run: |
+          wget --progress=dot -O ${{ runner.temp }}/docs.tgz \
+              ${{ env.FAKE_URL }}/docs.tgz
 
+      # ~ 45 s
       - name: Install packages
         if: startsWith(env.FAKE_URL, 'http') == false || steps.download.outcome == 'failure'
         run: |
@@ -601,5 +600,5 @@ jobs:
         run: |
           curl -q --no-remote-time -F "job=${{ github.run_number }}.0" \
               -F 'button=1' -F "upfile=@${{ runner.temp }}/docs.tgz" \
-              -F 'expires=${THEO_API_KEY}' \
+              -F 'expires=${{ env.THEO_API_KEY }}' \
               ${{ env.PUSH_URL }}
