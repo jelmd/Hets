@@ -346,10 +346,11 @@ jobs:
   job_3a:
     # Takes about 12 min.
     name: Test components
+    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
-      # ~ 16 s
+      # ~ 30 s
       - name: Update packages
         run: |
           # The less package repos, the less time it takes to update.
@@ -526,11 +527,11 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
-          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
 
       - name: Environment
         run: |
-          sudo cp ${{ env.STACK_ROOT }}/ksh93 /bin/
+          sudo cp -p ${{ env.STACK_ROOT }}/ksh93 /bin/ksh93
           ${{ env.GHAH }} -c showEnv
           stack --version
           stack exec -- ghc -V
