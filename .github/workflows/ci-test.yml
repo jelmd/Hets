@@ -74,6 +74,8 @@ on:
     branches:
       - gha
 
+# **/*.tex Docker/* GMP/CoLoSS/data/GMP.tar.gz **/*.pdf GMP/papers/ HolLight/OcamlTools/ debian/ doc/ ideas sample-ghci-script todo* utils/LiveCD/ utils/Mac.txt utils/debian/ utils/el/ utils/header_script utils/getDailyHets.sh utils/globallyInstallGhcPgk.sh utils/install.sh utils/installHetsPkgs.sh utils/installPkg.sh utils/macports utils/nightly utils/*.sh utils/ubuntu/ 
+
 # Run this workflow for the latest commit in a branch, only. I.e. if there is
 # any instance for an older commit still running, stop it and kill its jobs.
 concurrency:
@@ -526,7 +528,8 @@ jobs:
           echo 'man-db man-db/auto-update boolean false' | \
               sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install latexmk texlive-fonts-recommended
+          sudo apt-get install latexmk texlive-fonts-recommended \
+              texlive-latex-extra
 
       - name: Checkout
         uses: actions/checkout@v2
