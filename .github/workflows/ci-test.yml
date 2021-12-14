@@ -530,6 +530,7 @@ jobs:
 
       - name: Environment
         run: |
+          sudo cp ${{ env.STACK_ROOT }}/ksh93 /bin/
           ${{ env.GHAH }} -c showEnv
           stack --version
           stack exec -- ghc -V
