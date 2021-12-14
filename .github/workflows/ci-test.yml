@@ -233,7 +233,7 @@ jobs:
           ${{ env.GHAH }} -c showEnv
           stack --version
           stack exec -- ghc -V
-          ls -al
+          ls -al . ${{ runner.temp }}
 
       - name: Fake Build
         if: startsWith(env.FAKE_URL, 'http')
@@ -314,7 +314,7 @@ jobs:
           ${{ env.GHAH }} -c showEnv
           stack --version
           stack exec -- ghc -V
-          ls -al
+          ls -al . ${{ runner.temp }}
 
       - name: Fake Build
         if: startsWith(env.FAKE_URL, 'http')
@@ -410,7 +410,7 @@ jobs:
           ${{ env.GHAH }} -c showEnv
           stack --version
           stack exec -- ghc -V
-          ls -al
+          ls -al . ${{ runner.temp }}
 
       # ~ 10 min
       - name: Test
@@ -449,7 +449,7 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
-          ls -al
+          ls -al . ${{ runner.temp }}
 
       - name: Test
         run: |
@@ -480,7 +480,7 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
-          ls -al
+          ls -al . ${{ runner.temp }}
 
       - name: Test
         run: |
@@ -515,7 +515,7 @@ jobs:
       - name: Environment
         run: |
           ${{ env.GHAH }} -c showEnv
-          ls -al
+          ls -al . ${{ runner.temp }}
 
       - name: Test
         run: |
@@ -531,6 +531,7 @@ jobs:
     steps:
       # ~ 45 s
       - name: Install packages
+        if: startsWith(env.FAKE_URL, 'http') == false
         run: |
           echo 'man-db man-db/auto-update boolean false' | \
               sudo debconf-set-selections
@@ -541,13 +542,24 @@ jobs:
               marked@0.7.0 commander@6.2.1
 
       - name: Checkout
+        if: startsWith(env.FAKE_URL, 'http') == false
         uses: actions/checkout@v2
 
       - name: Fetch stack cache
+        if: startsWith(env.FAKE_URL, 'http') == false
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
           key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml') }}
+
+      - name: Download Hets docs
+        id: download
+        if: startsWith(env.FAKE_URL, 'http')
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+        with:
+          name: docs
+          path: ${{ runner.temp }}/docs.tgz
 
       - name: Environment
         run: |
@@ -555,9 +567,10 @@ jobs:
           ${{ env.GHAH }} -c showEnv
           stack --version
           stack exec -- ghc -V
-          ls -al
+          ls -al . ${{ runner.temp }}
 
       - name: Build docs
+        if: startsWith(env.FAKE_URL, 'http') == false || steps.download.outcome == 'failure'
         run: |
           unset POSIXLY_CORRECT
           make restack
@@ -568,13 +581,22 @@ jobs:
               -i README.md  -o doc/README.html
           [[ -s docs/README.html ]] || rm -f docs/README.html
           rmdir docs || true
+          tar cplzf ${{ runner.temp }}/docs.tgz docs
 
-      - name: Upload docs
+      - name: Upload docs to artifacts
+        if: startsWith(env.FAKE_URL, 'http')
+        continue-on-error: true
+        uses: actions/upload-artifact@v2
+        with:
+          name: docs
+          path: ${{ runner.temp }}/docs.tgz
+          retention-days: 1
+
+      - name: Upload docs to home
         continue-on-error: true
         env:
-          THEO_API_KEY: $${{ secrets.THEO_PUSH_SECRET }}
+          THEO_API_KEY: ${{ secrets.THEO_PUSH_SECRET }}
         run: |
-          tar cplzf ${{ runner.temp }}/docs.tgz docs
           curl -q --no-remote-time -F "job=${{ github.run_number }}.0" \
               -F 'button=1' -F "upfile=@${{ runner.temp }}/docs.tgz" \
               -F 'expires=${THEO_API_KEY}' \
