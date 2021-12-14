@@ -93,7 +93,7 @@ jobs:
   # each job.
   ############################################################################
   job_1:
-    # Takes ~ 21 min | 30 s.
+    # Takes ~ 21 min | 35 s.
     name: Build Stack
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong and we want
@@ -278,7 +278,7 @@ jobs:
     needs: job_1
     steps:
       # The desktop version needs additional GUI packages usually not installed.
-      # ~ 13 s
+      # ~ 27 s
       - name: Update packages
         if: startsWith(env.FAKE_URL, 'http') == false
         run: |
@@ -366,7 +366,8 @@ jobs:
           echo 'man-db man-db/auto-update boolean false' | \
               sudo debconf-set-selections
           sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get install spass darwin vampire texlive-latex-base
+          sudo apt-get install spass darwin vampire \
+              texlive-latex-base texlive-fonts-recommended
 
       # Unfortunately utils/checkChangedSourceGit.sh uses 'git diff' - so need
       # to fetch the dropped .git/ bloat.
@@ -410,6 +411,7 @@ jobs:
 
   job_3b:
     name: Test Hets-Lib
+    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -446,6 +448,7 @@ jobs:
 
   job_3c:
     name: Test PostgreSQL DB
+    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -480,6 +483,7 @@ jobs:
   job_3d:
     # Same as 3c but for SQlite
     name: Test SQLite DB
+    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -508,3 +512,33 @@ jobs:
           HETS_MAGIC=${{ github.workspace }}/magic/hets.magic \
           PATH=${{ github.workspace }}:${PATH} \
           ./test/hets-lib-database-check.sh -a 'SQLite'
+
+
+  job_4a:
+    name: Build docs
+    runs-on: ubuntu-18.04
+    needs: job_1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Fetch stack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.STACK_ROOT }}
+          key: stack-${{ runner.os }}-${{ hashFiles('stack.yaml.orig') }}
+
+      - name: Environment
+        run: |
+          ${{ env.GHAH }} -c showEnv
+          stack --version
+          stack exec -- ghc -V
+          ls -al
+
+      - name: Build docs
+        run: |
+          unset POSIXLY_CORRECT
+          make restack
+          make doc
+
+
