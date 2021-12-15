@@ -596,9 +596,9 @@ jobs:
       - name: Upload docs to home
         continue-on-error: true
         env:
-          THEO_API_KEY: ${{ secrets.THEO_PUSH_SECRET }}
+          THEO_API: ${{ secrets.THEO_PUSH_API }}
         run: |
           curl -q --no-remote-time -F "job=${{ github.run_number }}.0" \
               -F 'button=1' -F "upfile=@${{ runner.temp }}/docs.tgz" \
-              -F 'api=${{ env.THEO_API_KEY }}' \
+              -F 'api=${{ env.THEO_API }}' \
               ${{ env.PUSH_URL }}
