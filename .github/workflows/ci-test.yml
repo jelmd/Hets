@@ -70,7 +70,7 @@ env:
   # can be downloaded via the related GHA pages of the workflow for one day.
   DEBUG: 'false'
   # Where to push generated docs.
-  PUSH_URL: http://theo.cs.ovgu.de/cgi-bin/push
+  PUSH_URL: http://theo.cs.ovgu.de/cgi-bin/ghapush
 
 # When to trigger this workflow
 on:
