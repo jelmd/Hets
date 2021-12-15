@@ -62,8 +62,9 @@ env:
   HETS_LIB_REPO: https://github.com/spechub/Hets-lib.git
   HETS_PPA: http://ppa.launchpad.net/hets/hets/ubuntu
   # URL to use to skip hets builds and download the artifacts hets-server.tzst
-  # + hets-desktop.tzst instead. Saves a lot of time when troubleshooting tests.
-  FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
+  # + hets-desktop.tzst instead. Similar for docs: Try to download the docs.tgz
+  # from the same URL. Saves a lot of time when troubleshooting tests.
+  #FAKE_URL: http://stats.iks.cs.ovgu.de/tmp
   # If set to true, upload initial stack and hets src tree as stack0 and hets0
   # as well as the final stack (stack1) to the artifact storage, too. Note that
   # the post build Hets dir gets always uploaded to the artifact repo and thus
@@ -204,7 +205,7 @@ jobs:
           tar -H posix -I zstd \
               -cplf ${{ runner.temp }}/stack0.tzst -C ${{ env.STACK_ROOT }} .
           tar -H posix -I zstd \
-              --exclude=.git --exclude=OcamlTools \
+              --exclude=.git --exclude=OcamlTools --exclude=doc \
               --exclude=hets-mmt-standalone.jar --exclude=Termination \
               -cplf ${{ runner.temp }}/hets0.tzst .
 
@@ -250,7 +251,7 @@ jobs:
           ln -s hets_server.bin hets
           cp -pL /bin/ksh93 .
           tar -H posix -I zstd \
-              --exclude=.git --exclude=OcamlTools \
+              --exclude=.git --exclude=OcamlTools --exclude=doc \
               --exclude=hets-mmt-standalone.jar --exclude=Termination \
               -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           # gives us a proper exit code, too.
@@ -332,7 +333,7 @@ jobs:
           make hets.bin
           cp -pL /bin/ksh93 .
           tar -H posix -I zstd \
-              --exclude=.git --exclude=OcamlTools \
+              --exclude=.git --exclude=OcamlTools --exclude=doc \
               --exclude=hets-mmt-standalone.jar --exclude=Termination \
               -cplf ${{ runner.temp }}/${{ env.HETS_ARC }} .
           # gives us a proper exit code, too.
@@ -355,7 +356,6 @@ jobs:
   job_3a:
     # Takes about 12 min.
     name: Test components
-    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -420,8 +420,8 @@ jobs:
           HETS_MAGIC=${{ github.workspace }}/magic/hets.magic  make check
 
   job_3b:
+    # Takes ~ 
     name: Test Hets-Lib
-    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -457,8 +457,8 @@ jobs:
           ./test/hets-lib-check.sh all
 
   job_3c:
+    # Takes ~ 
     name: Test PostgreSQL DB
-    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -492,8 +492,8 @@ jobs:
 
   job_3d:
     # Same as 3c but for SQlite
+    # Takes ~ 
     name: Test SQLite DB
-    if: 0
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -525,6 +525,7 @@ jobs:
 
 
   job_4a:
+	# Takes ~  | 18 s.
     name: Build docs
     runs-on: ubuntu-18.04
     needs: job_1
@@ -539,7 +540,8 @@ jobs:
 
       # ~ 45 s
       - name: Install packages
-        if: startsWith(env.FAKE_URL, 'http') == false || steps.download.outcome == 'failure'
+        if: startsWith(env.FAKE_URL, 'http') == false
+          || steps.download.outcome == 'failure'
         run: |
           echo 'man-db man-db/auto-update boolean false' | \
               sudo debconf-set-selections
@@ -550,11 +552,13 @@ jobs:
               marked@0.7.0 commander@6.2.1
 
       - name: Checkout
-        if: startsWith(env.FAKE_URL, 'http') == false || steps.download.outcome == 'failure'
+        if: startsWith(env.FAKE_URL, 'http') == false
+          || steps.download.outcome == 'failure'
         uses: actions/checkout@v2
 
       - name: Fetch stack cache
-        if: startsWith(env.FAKE_URL, 'http') == false || steps.download.outcome == 'failure'
+        if: startsWith(env.FAKE_URL, 'http') == false
+          || steps.download.outcome == 'failure'
         uses: actions/cache@v2
         with:
           path: ${{ env.STACK_ROOT }}
@@ -571,7 +575,8 @@ jobs:
           ls -al . ${{ runner.temp }}
 
       - name: Build docs
-        if: startsWith(env.FAKE_URL, 'http') == false || steps.download.outcome == 'failure'
+        if: startsWith(env.FAKE_URL, 'http') == false
+          || steps.download.outcome == 'failure'
         run: |
           unset POSIXLY_CORRECT
           make restack
@@ -585,7 +590,8 @@ jobs:
           tar cplzf ${{ runner.temp }}/docs.tgz docs
 
       - name: Upload docs to artifacts
-        if: startsWith(env.FAKE_URL, 'http') && steps.download.outcome == 'failure'
+        if: startsWith(env.FAKE_URL, 'http')
+          && steps.download.outcome == 'failure'
         continue-on-error: true
         uses: actions/upload-artifact@v2
         with:
