@@ -18,6 +18,10 @@
 #	- matrix generated jobs/workflow: max. 256
 #	- max. workflows: 500 every 10 s
 #
+#	- max. 1.000 organization secrets, 100 repository secrets, 100 env secrets.
+#	- per workflow: 100 repo, the first 100 org, 100 env secrets.
+#   - max. 64 KiB/secret
+#
 #   VM:
 #   - 14 GB SSD local disk
 #   - 2 CPUs
@@ -46,7 +50,7 @@
 
 
 # Build hets and run related tests for CI
-name: CI-Tests
+name: CI
 
 env:
   # Dir cannot be directly in /tmp or /var/tmp because Microsoft does not
@@ -77,12 +81,31 @@ env:
 on:
   push:
     branches:
-      - gha
+      - master
   pull_request:
-    branches:
-      - gha
-
-# **/*.tex Docker/* GMP/CoLoSS/data/GMP.tar.gz **/*.pdf GMP/papers/ HolLight/OcamlTools/ debian/ doc/ ideas sample-ghci-script todo* utils/LiveCD/ utils/Mac.txt utils/debian/ utils/el/ utils/header_script utils/getDailyHets.sh utils/globallyInstallGhcPgk.sh utils/install.sh utils/installHetsPkgs.sh utils/installPkg.sh utils/macports utils/nightly utils/*.sh utils/ubuntu/ 
+    paths-ignore:
+      - '.gitignore'
+      - '.travis.yml'
+      - 'LICENSE.txt'
+      - 'LIZENZ.txt'
+      - 'README*'
+      - '_parameters'
+      - 'debian/**'
+      - 'doc/**'
+      - 'ideas'
+      - 'pretty/**'
+      - 'sample-ghci-script'
+      - 'stack.yaml'
+      - 'todo*'
+      - '**.tex'
+      - '**.pdf'
+      - 'utils/**'
+      - '!utils/gha-helper.sh'
+      - '!utils/check*'
+      - 'Docker/**'
+      - 'GMP/CoLoSS/data/GMP.tar.gz'
+      - 'GMP/papers/**'
+      - 'HolLight/OcamlTools/**'
 
 # Run this workflow for the latest commit in a branch, only. I.e. if there is
 # any instance for an older commit still running, stop it and kill its jobs.
@@ -178,6 +201,7 @@ jobs:
   job_2a:
     # Takes ~ 18 min | 45 s.
     name: Build Hets Server
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
@@ -284,6 +308,7 @@ jobs:
   job_2b:
     # Takes ~ 19 min | 45 s.
     name: Build Hets Desktop
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
@@ -356,6 +381,7 @@ jobs:
   job_3a:
     # Takes about 12 min.
     name: Test components
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -422,6 +448,7 @@ jobs:
   job_3b:
     # Takes ~ 
     name: Test Hets-Lib
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -459,6 +486,7 @@ jobs:
   job_3c:
     # Takes ~ 
     name: Test PostgreSQL DB
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -494,6 +522,7 @@ jobs:
     # Same as 3c but for SQlite
     # Takes ~ 
     name: Test SQLite DB
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -525,7 +554,7 @@ jobs:
 
 
   job_4a:
-    # Takes ~  | 18 s.
+    # Takes ~ 20 min | 18 s.
     name: Build docs
     runs-on: ubuntu-18.04
     needs: job_1
