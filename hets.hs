@@ -35,7 +35,7 @@ import GUI.ShowGraph
 import GUI.ShowLogicGraph
 #endif
 
-#ifdef PROGRAMATICA
+#ifdef PROGRAMATICAX
 import Haskell.Haskell2DG
 #endif
 
