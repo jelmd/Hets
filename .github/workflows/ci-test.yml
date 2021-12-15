@@ -525,7 +525,7 @@ jobs:
 
 
   job_4a:
-	# Takes ~  | 18 s.
+    # Takes ~  | 18 s.
     name: Build docs
     runs-on: ubuntu-18.04
     needs: job_1
