@@ -55,7 +55,7 @@ name: CI
 env:
   # Set to false to deaktivate this workflow (so one does not need to move it
   # out of this directory).
-  WF_ENABLED: false
+  WF_ENABLED: ${{ false }}
   # Dir cannot be directly in /tmp or /var/tmp because Microsoft does not
   # understand dir mode 01777 and errors out with dumb messages. /dev/shm/
   # does not work for stack - not enough space. /tmp as well as /var/tmp are on
@@ -132,6 +132,7 @@ jobs:
   job_1:
     # Takes ~ 21 min | 35 s.
     name: Build Stack
+    if: env.WF_ENABLED
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong and we want
     # GHA to kill the job to save build time. E.g. stack sometimes goes in an
