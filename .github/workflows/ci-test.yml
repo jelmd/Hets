@@ -53,6 +53,9 @@
 name: CI
 
 env:
+  # Set to false to deaktivate this workflow (so one does not need to move it
+  # out of this directory).
+  WF_ENABLED: false
   # Dir cannot be directly in /tmp or /var/tmp because Microsoft does not
   # understand dir mode 01777 and errors out with dumb messages. /dev/shm/
   # does not work for stack - not enough space. /tmp as well as /var/tmp are on
@@ -74,7 +77,7 @@ env:
   # the post build Hets dir gets always uploaded to the artifact repo and thus
   # can be downloaded via the related GHA pages of the workflow for one day.
   DEBUG: 'false'
-  # Where to push generated docs.
+  # Where to push generated docs. Comment out to disable pushing docs.
   PUSH_URL: http://theo.cs.ovgu.de/cgi-bin/ghapush
 
 # When to trigger this workflow
@@ -84,6 +87,7 @@ on:
       - master
   pull_request:
     paths-ignore:
+      - '.github/**'
       - '.gitignore'
       - '.travis.yml'
       - 'LICENSE.txt'
@@ -128,6 +132,7 @@ jobs:
   job_1:
     # Takes ~ 21 min | 35 s.
     name: Build Stack
+    if: env.WF_ENABLED
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong and we want
     # GHA to kill the job to save build time. E.g. stack sometimes goes in an
@@ -201,7 +206,7 @@ jobs:
   job_2a:
     # Takes ~ 18 min | 45 s.
     name: Build Hets Server
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
@@ -308,7 +313,7 @@ jobs:
   job_2b:
     # Takes ~ 19 min | 45 s.
     name: Build Hets Desktop
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
@@ -381,7 +386,7 @@ jobs:
   job_3a:
     # Takes about 12 min.
     name: Test components
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -448,7 +453,7 @@ jobs:
   job_3b:
     # Takes ~ 
     name: Test Hets-Lib
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -486,7 +491,7 @@ jobs:
   job_3c:
     # Takes ~ 
     name: Test PostgreSQL DB
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -522,7 +527,7 @@ jobs:
     # Same as 3c but for SQlite
     # Takes ~ 
     name: Test SQLite DB
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -556,6 +561,7 @@ jobs:
   job_4a:
     # Takes ~ 20 min | 18 s.
     name: Build docs
+    if: env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
@@ -618,6 +624,7 @@ jobs:
           rmdir docs || true
           tar cplzf ${{ runner.temp }}/docs.tgz docs
 
+      # Non-spechub repos do not need to auto-deploy docs. So 
       - name: Upload docs to artifacts
         if: startsWith(env.FAKE_URL, 'http')
           && steps.download.outcome == 'failure'
@@ -629,6 +636,7 @@ jobs:
           retention-days: 1
 
       - name: Upload docs to home
+        if: startsWith(env.PUSH_URL, 'http')
         continue-on-error: true
         env:
           THEO_API: ${{ secrets.THEO_PUSH_API }}
