@@ -132,7 +132,7 @@ jobs:
   job_1:
     # Takes ~ 21 min | 35 s.
     name: Build Stack
-    if: env.WF_ENABLED
+    if: ${{ env.WF_ENABLED }}
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong and we want
     # GHA to kill the job to save build time. E.g. stack sometimes goes in an
