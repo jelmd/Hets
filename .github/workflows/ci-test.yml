@@ -207,7 +207,7 @@ jobs:
   job_2a:
     # Takes ~ 18 min | 45 s.
     name: Build Hets Server
-    if: github.event_name == 'pull_request' && env.WF_ENABLED
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
@@ -314,7 +314,7 @@ jobs:
   job_2b:
     # Takes ~ 19 min | 45 s.
     name: Build Hets Desktop
-    if: github.event_name == 'pull_request' && env.WF_ENABLED
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
@@ -387,7 +387,7 @@ jobs:
   job_3a:
     # Takes about 12 min.
     name: Test components
-    if: github.event_name == 'pull_request' && env.WF_ENABLED
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -454,7 +454,7 @@ jobs:
   job_3b:
     # Takes ~ 
     name: Test Hets-Lib
-    if: github.event_name == 'pull_request' && env.WF_ENABLED
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -492,7 +492,7 @@ jobs:
   job_3c:
     # Takes ~ 
     name: Test PostgreSQL DB
-    if: github.event_name == 'pull_request' && env.WF_ENABLED
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -528,7 +528,7 @@ jobs:
     # Same as 3c but for SQlite
     # Takes ~ 
     name: Test SQLite DB
-    if: github.event_name == 'pull_request' && env.WF_ENABLED
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-18.04
     needs: job_2a
     steps:
@@ -562,7 +562,6 @@ jobs:
   job_4a:
     # Takes ~ 20 min | 18 s.
     name: Build docs
-    if: env.WF_ENABLED
     runs-on: ubuntu-18.04
     needs: job_1
     steps:
