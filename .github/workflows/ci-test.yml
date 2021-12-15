@@ -12,7 +12,7 @@
 #	- total concurent jobs:
 #		- linux: 20
 #		- macos: 5
-#	- max job execution time: 6 h
+#	- max job execution time: 6 h (sieht aber eher wie 24h aus)
 #	- max workflow execution time: 72 h
 #	- API requests: 1000 req/h
 #	- matrix generated jobs/workflow: max. 256
@@ -88,7 +88,7 @@ on:
       - master
   pull_request:
     paths-ignore:
-      - '.github/**'
+      - '.github/**'				# re-run the job manually if needed
       - '.gitignore'
       - '.travis.yml'
       - 'LICENSE.txt'
@@ -141,12 +141,14 @@ jobs:
       # Info about the running environment makes troubleshooting easier. < 1s
       - name: Dump GitHub context
         env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
+          GITHUB_CTX: ${{ toJSON(github) }}
           MY_ENV: ${{ toJSON(env) }}
+          RUNNER_CTX: ${{ toJSON(runner) }}
         run: |
           mkdir -p ${{ env.STACK_ROOT }}
-          printf "$GITHUB_CONTEXT\n"
-          printf "$MY_ENV\n"
+          printf "github:\n$GITHUB_CTX\n"
+          printf "env:\n$MY_ENV\n"
+          printf "env:\n$RUNNER_CTX\n"
           df -h
           mount
 
@@ -628,7 +630,6 @@ jobs:
           rmdir docs || true
           tar cplzf ${{ runner.temp }}/docs.tgz docs
 
-      # Non-spechub repos do not need to auto-deploy docs. So 
       - name: Upload docs to artifacts
         if: startsWith(env.FAKE_URL, 'http')
           && steps.download.outcome == 'failure'
