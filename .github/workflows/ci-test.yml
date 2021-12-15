@@ -30,22 +30,22 @@
 # Also note, that the jobs contain a lot of code duplication and thus one needs
 # to take care to keep all jobs in sync (GHA provides no proper alternatives).
 # So the only way to reduce the bloat and make stuff consistent is to move it
-# to the utils/gha-helper.sh script.
+# to the utils/gha-helper.sh script. (Forget re-using workflows - buggy as hell)
 #
 # Last but not least take care wrt. conditional expressions - very bogus and
 # often do not, what the actual intention is (e.g. GHA formats an expr as text
 # if it encounters a '${{' and compares this literal with null|'' to decide
 # between true or false. Other wiered stuff: tags a logical not ('!') as syntax
-# error, etc.). So one should really test this stuff before using it. Testing
+# error, ...). So one should really test this stuff before using it. Testing
 # should be done in the developers forked repository to avoid hitting the
 # the resource limits of the Hets repo.
  
-# NOTE wrt. stack:
+# NOTE wrt. 'stack':
 # Stack is not POSIX compatible wrt. passing arguments to called utils. So at
 # least on [re]make/update stack, make sure POSIXLY_CORRECT is unset.
 
 # Rule of thumb:
-# Down/Upload speed seen: ~ 10..30 MB/s for AWS ("intern"), 5 MB/s extern (IKS).
+# Down/Upload speed seen: ~10..30+ MB/s for AWS ("intern"), 5 MB/s extern (IKS).
 ###############################################################################
 
 
@@ -53,9 +53,6 @@
 name: CI
 
 env:
-  # Set to false to deaktivate this workflow (so one does not need to move it
-  # out of this directory).
-  WF_ENABLED: ${{ false }}
   # Dir cannot be directly in /tmp or /var/tmp because Microsoft does not
   # understand dir mode 01777 and errors out with dumb messages. /dev/shm/
   # does not work for stack - not enough space. /tmp as well as /var/tmp are on
@@ -80,7 +77,11 @@ env:
   # Where to push generated docs. Comment out to disable pushing docs.
   PUSH_URL: http://theo.cs.ovgu.de/cgi-bin/ghapush
 
-# When to trigger this workflow
+# When to trigger this workflow. Since expression handling is absolutely
+# brain damaged (typical Microsoft crap) and buggy, one can't simple set an env
+# var above and exec jobs wrt. to its value. So to disable this workflow either
+# remove this file from this directory OR rename master e.g. to never_happens in
+# on.push.branches and append '**' to the on.pull_request.paths-ignore, etc..
 on:
   push:
     branches:
@@ -122,7 +123,6 @@ concurrency:
 # from previous jobs and checkout the repo again, if needed.
 jobs:
 
-
   ################################ PREPARE ###################################
   # This workflow uses 'stack' to build Hets and related tests. To avoid
   # building it agaian and again within each job, we build it once, upload the
@@ -132,7 +132,6 @@ jobs:
   job_1:
     # Takes ~ 21 min | 35 s.
     name: Build Stack
-    if: env.WF_ENABLED
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong and we want
     # GHA to kill the job to save build time. E.g. stack sometimes goes in an
@@ -559,6 +558,10 @@ jobs:
           PATH=${{ github.workspace }}:${PATH} \
           ./test/hets-lib-database-check.sh -a 'SQLite'
 
+
+  ################################ MISC ######################################
+  # Other jobs, which need to be done and should re-use stuff from this wflow.
+  ############################################################################
 
   job_4a:
     # Takes ~ 20 min | 18 s.
