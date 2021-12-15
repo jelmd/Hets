@@ -132,7 +132,6 @@ jobs:
   job_1:
     # Takes ~ 21 min | 35 s.
     name: Build Stack
-    if: startsWith(env.WF_ENABLED, 'true')
     runs-on: ubuntu-18.04
     # If the job takes longer than 30 min, something is going wrong and we want
     # GHA to kill the job to save build time. E.g. stack sometimes goes in an
@@ -143,9 +142,11 @@ jobs:
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJSON(github) }}
+          MY_ENV: ${{ toJSON(env) }}
         run: |
           mkdir -p ${{ env.STACK_ROOT }}
           printf "$GITHUB_CONTEXT\n"
+          printf "$MY_ENV\n"
           df -h
           mount
 
