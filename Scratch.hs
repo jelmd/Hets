@@ -76,7 +76,7 @@ getDevGraph :: FilePath -> IO DGraph
 getDevGraph fname = do
   res <- process fname
   case res of
-    Nothing -> error "getDevGraph: process"
+    Nothing -> error "getDevGraph: xprocessx"
     Just (ln, lenv) -> case Map.lookup ln lenv of
         Nothing -> error "getDevGraph: lookup"
         Just dg -> return dg
