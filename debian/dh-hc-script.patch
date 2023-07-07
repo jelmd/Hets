@@ -1,0 +1,62 @@
+--- /usr/share/haskell-devscripts/Dh_Haskell.sh.orig	2021-11-14 16:34:35.000000000 +0100
++++ /usr/share/haskell-devscripts/Dh_Haskell.sh	2023-07-07 20:45:02.743829286 +0200
+@@ -124,11 +124,6 @@
+     echo "/usr/lib/${hc}-doc/hoogle/"
+ }
+ 
+-strip_hash(){
+-    set -eo pipefail
+-    echo "$1" | sed 's/-................................$//'
+-}
+-
+ sort_uniq(){
+     set -eo pipefail
+     {
+@@ -160,19 +155,13 @@
+ providing_package_for_ghc(){
+     set -eo pipefail
+     local package
+-    local dep
+     local dir
+     local dirs
+     local lib
+-    local hc
+-    local ghcversion=`dpkg-query --showformat '${Version}' --show ghc`
+-    hc=$1
+-    if dpkg --compare-versions "${ghcversion}" '>=' 8
+-    then
+-        dep=$2
+-    else
+-        dep=`strip-hash $2`
+-    fi
++	local hc=$1
++	local dep="$2"
++	local hash=${dep: -23}
++	(( ${#hash} == 23 )) && [[ ${hash:0:1} == '-' ]] && dep=${dep:0:${#dep}-23}
+     dirs=`ghc_pkg_field $hc $dep library-dirs | grep -i ^library-dirs | cut -d':' -f 2`
+     lib=`ghc_pkg_field $hc $dep hs-libraries | grep -i ^hs-libraries |  sed -e 's|hs-libraries: *\([^ ]*\).*|\1|' `
+     for dir in $dirs ; do
+@@ -187,19 +176,13 @@
+ providing_package_for_ghc_prof(){
+     set -eo pipefail
+     local package
+-    local dep
+     local dir
+     local dirs
+     local lib
+-    local hc
+-    local ghcversion=`dpkg-query --showformat '${Version}' --show ghc`
+-    hc=$1
+-    if dpkg --compare-versions "${ghcversion}" '>=' 8
+-    then
+-        dep=$2
+-    else
+-        dep=`strip-hash $2`
+-    fi
++	local hc=$1
++	local dep="$2"
++	local hash=${dep: -23}
++	(( ${#hash} == 23 )) && [[ ${hash:0:1} == '-' ]] && dep=${dep:0:${#dep}-23}
+     dirs=`ghc_pkg_field $hc $dep library-dirs | grep -i ^library-dirs | cut -d':' -f 2`
+     lib=`ghc_pkg_field $hc $dep hs-libraries | grep -i ^hs-libraries | sed -e 's|hs-libraries: *\([^ ]*\).*|\1|' `
+     for dir in $dirs ; do

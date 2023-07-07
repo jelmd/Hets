@@ -966,7 +966,17 @@ install: install-hets install-hets_server install-common install-owl-tools
 ############################################################################
 # DEBIAN rules
 ############################################################################
-build-indep: jars doc
+BOGUS := /usr/share/haskell-devscripts/Dh_Haskell.sh
+DH_PATCH := debian/dh-hc-script.patch
+
+patch-deb-ghc-script:
+	-@if [[ $(OSR) == 'jammy' && -e $(DH_PATCH) ]] && grep -qs ^strip_hash $(BOGUS) ; then \
+		echo 'Need to patch buggy $(BOGUS) ...' ; \
+		sudo patch -p0 -b -z.orig $(BOGUS) <$(DH_PATCH) || \
+		echo "Run 'sudo patch -p0 -b -z.orig $(BOGUS) <$(DH_PATCH)' to fix."; \
+	fi
+
+build-indep: jars doc patch-deb-ghc-script
 
 build-arch: $(STACK_TARGET) hets.bin hets_server.bin
 
