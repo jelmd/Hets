@@ -1,25 +1,38 @@
---- /usr/share/haskell-devscripts/Dh_Haskell.sh.orig	2021-11-14 16:34:35.000000000 +0100
-+++ /usr/share/haskell-devscripts/Dh_Haskell.sh	2023-07-07 20:45:02.743829286 +0200
-@@ -124,11 +124,6 @@
+--- /usr/share/haskell-devscripts/Dh_Haskell.sh.orig	2023-07-08 10:15:36.782103725 +0200
++++ /usr/share/haskell-devscripts/Dh_Haskell.sh	2023-07-08 12:55:47.717164791 +0200
+@@ -124,9 +124,11 @@
      echo "/usr/lib/${hc}-doc/hoogle/"
  }
  
 -strip_hash(){
 -    set -eo pipefail
 -    echo "$1" | sed 's/-................................$//'
--}
--
++function strip_hash {
++	typeset -n pkgID=$1
++	local hash=${pkgID: -23}
++	(( ${#hash} == 23 )) && [[ ${hash:0:1} == '-' ]] && \
++		pkgID=${pkgID:0:${#pkgID}-23}
+ }
+ 
  sort_uniq(){
-     set -eo pipefail
-     {
-@@ -160,19 +155,13 @@
- providing_package_for_ghc(){
-     set -eo pipefail
-     local package
+@@ -150,65 +152,32 @@
+ }
+ 
+ ghc_pkg_field(){
+-    set -eo pipefail
+     hc=$1
+     pkg=$2
+     field=$3
+     ${hc}-pkg --global field ${pkg} ${field} | head -n1
+ }
+ 
+-providing_package_for_ghc(){
+-    set -eo pipefail
+-    local package
 -    local dep
-     local dir
-     local dirs
-     local lib
+-    local dir
+-    local dirs
+-    local lib
 -    local hc
 -    local ghcversion=`dpkg-query --showformat '${Version}' --show ghc`
 -    hc=$1
@@ -29,21 +42,36 @@
 -    else
 -        dep=`strip-hash $2`
 -    fi
-+	local hc=$1
-+	local dep="$2"
-+	local hash=${dep: -23}
-+	(( ${#hash} == 23 )) && [[ ${hash:0:1} == '-' ]] && dep=${dep:0:${#dep}-23}
-     dirs=`ghc_pkg_field $hc $dep library-dirs | grep -i ^library-dirs | cut -d':' -f 2`
-     lib=`ghc_pkg_field $hc $dep hs-libraries | grep -i ^hs-libraries |  sed -e 's|hs-libraries: *\([^ ]*\).*|\1|' `
-     for dir in $dirs ; do
-@@ -187,19 +176,13 @@
- providing_package_for_ghc_prof(){
-     set -eo pipefail
-     local package
+-    dirs=`ghc_pkg_field $hc $dep library-dirs | grep -i ^library-dirs | cut -d':' -f 2`
+-    lib=`ghc_pkg_field $hc $dep hs-libraries | grep -i ^hs-libraries |  sed -e 's|hs-libraries: *\([^ ]*\).*|\1|' `
+-    for dir in $dirs ; do
+-        if [ -e "${dir}/lib${lib}.a" ] ; then
+-            package=`dpkg-query -S ${dir}/lib${lib}.a | cut -d':' -f 1`
+-            continue
+-        fi
+-    done
+-    echo $package
++function providing_package_for {
++	local package path hc="$1" dep="$2" ext="$3"
++	strip_hash dep
++	local dirs=$( ghc_pkg_field $hc $dep library-dirs ; )
++	local lib=( $( ghc_pkg_field $hc $dep hs-libraries  ; ) )
++	for path in ${dirs:14} ; do
++		path+="/lib${lib[1]}${ext}"
++		[[ -e "${path}" ]] || continue
++		hc=( $( dpkg-query -S "${path}" ; ) )
++		(( ${#hc[@]} == 2 )) && package=${hc%:} && break
++	done
++	echo $package
+ }
+ 
+-providing_package_for_ghc_prof(){
+-    set -eo pipefail
+-    local package
 -    local dep
-     local dir
-     local dirs
-     local lib
+-    local dir
+-    local dirs
+-    local lib
 -    local hc
 -    local ghcversion=`dpkg-query --showformat '${Version}' --show ghc`
 -    hc=$1
@@ -53,10 +81,21 @@
 -    else
 -        dep=`strip-hash $2`
 -    fi
-+	local hc=$1
-+	local dep="$2"
-+	local hash=${dep: -23}
-+	(( ${#hash} == 23 )) && [[ ${hash:0:1} == '-' ]] && dep=${dep:0:${#dep}-23}
-     dirs=`ghc_pkg_field $hc $dep library-dirs | grep -i ^library-dirs | cut -d':' -f 2`
-     lib=`ghc_pkg_field $hc $dep hs-libraries | grep -i ^hs-libraries | sed -e 's|hs-libraries: *\([^ ]*\).*|\1|' `
-     for dir in $dirs ; do
+-    dirs=`ghc_pkg_field $hc $dep library-dirs | grep -i ^library-dirs | cut -d':' -f 2`
+-    lib=`ghc_pkg_field $hc $dep hs-libraries | grep -i ^hs-libraries | sed -e 's|hs-libraries: *\([^ ]*\).*|\1|' `
+-    for dir in $dirs ; do
+-        if [ -e "${dir}/lib${lib}_p.a" ] ; then
+-            package=`dpkg-query -S ${dir}/lib${lib}_p.a | cut -d':' -f 1`
+-            continue
+-        fi
+-    done
+-    echo $package
++function providing_package_for_ghc {
++	providing_package_for "$1"  "$2" '.a'
++}
++
++function providing_package_for_ghc_prof {
++	providing_package_for "$1"  "$2" '_p.a'
+ }
+ 
+ cabal_package_ids(){
